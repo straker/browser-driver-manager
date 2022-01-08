@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Get path of current script
+# @see https://medium.com/@Aenon/bash-location-of-current-script-76db7fd2e388
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Import utils
@@ -12,8 +13,8 @@ function usage() {
   echo ""
   echo "options:"
   echo "  -i, --install [browsers]   Install the list of browsers"
-  echo "  -h, --help                 Print this list and exit"
-  echo "  -v, --version              Print the version and exit"
+  echo "  -h, --help                 Display this help and exit"
+  echo "  -v, --version              Output version information and exit"
   echo "  --verbose                  Output verbose debugging logs"
 }
 
