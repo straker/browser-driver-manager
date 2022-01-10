@@ -30,3 +30,34 @@ function getOS() {
   esac
   echo "$OS"
 }
+
+# Download a file from a specific URL to a file
+# $1 = URL to resource
+# $2 = filepath to save resource to
+# $3 = if verbose logging is enabled
+function download() {
+  if command -v curl >/dev/null; then
+    OPTIONS="--location --retry 3 --silent --fail"
+    if [ "$3" -eq 1 ]; then
+      echo "Using curl to download \"$1\""
+      OPTIONS="$OPTIONS --show-error"
+    fi
+
+    curl $OPTIONS --output "$2" "$1"
+  elif command -v wget >/dev/null; then
+    OPTIONS="--tries=3 --quiet"
+    if [ "$3" -eq 1 ]; then
+      echo "Using wget to download \"$1\""
+    fi
+
+    wget $OPTIONS --output-document="$2" "$1"
+  else
+    echo "Unable to download file. System does not support curl or wget"
+    exit 1
+  fi
+
+  if [ ! -f "$2" ]; then
+    echo "Unable to download file. Something went wrong"
+    exit 1;
+  fi
+}

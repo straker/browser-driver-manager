@@ -1,7 +1,11 @@
 #!/bin/bash
 
+# Default verbose to 0 if not set
+VERBOSE=${2:-0}
+
 # Get path of current script
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+TMP_DIR="`cd "${DIR}/../tmp";pwd`"
 
 # Import utils
 . "$DIR/utils.sh"
@@ -28,6 +32,9 @@ FILENAME="chrome-$CHANNEL"
 echo "Installing Chrome $(titleCase $CHANNEL)"
 
 OS=$(getOS)
+if [[ $VERBOSE ]]; then
+  echo "System detected as $OS"
+fi
 
 # Linux platform
 if [ $OS == 'Linux' ]; then
@@ -67,26 +74,14 @@ if [ $OS == 'Linux' ]; then
     exit 1
   fi
 
-  # Determine how to download Chrome
-  if command -v wget >/dev/null; then
-    wget "$URL" -O "$DIR/$FILENAME"
-
-  elif command -v curl >/dev/null; then
-    curl "$URL" -o "$DIR/$FILENAME"
-
-  else
-    echo "Unable to download Chrome. System does not support wget or curl"
-    exit 1
-  fi
+  download "$URL" "$TMP_DIR/$FILENAME" "$VERBOSE"
 
   # Install Chrome using system installer
   # @see https://unix.stackexchange.com/questions/519773/find-package-os-distribution-manager-for-automation
   if command -v apt >/dev/null; then
-    apt install "$DIR/$FILENAME"
-
+    apt install "$TMP_DIR/$FILENAME"
   elif command -v yum >/dev/null; then
-    yum install "$DIR/$FILENAME"
-
+    yum install "$TMP_DIR/$FILENAME"
   else
     echo "Unable to install Chrome. System does not support apt or yum"
     exit 1

@@ -1,8 +1,11 @@
 #!/bin/bash
 
+VERBOSE=0
+
 # Get path of current script
 # @see https://medium.com/@Aenon/bash-location-of-current-script-76db7fd2e388
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+ROOT_DIR="`cd "${DIR}/..";pwd`"
 
 # Import utils
 . "$DIR/utils.sh"
@@ -21,7 +24,7 @@ function usage() {
 # Display version from package.json file
 # @see https://gist.github.com/DarrenN/8c6a5b969481725a4413
 function version() {
-  PACKAGE_VERSION=$(cat package.json \
+  PACKAGE_VERSION=$(cat "$ROOT_DIR/package.json" \
     | grep version \
     | head -1 \
     | awk -F: '{ print $2 }' \
@@ -58,7 +61,9 @@ if [[ $INSTALL ]]; then
 
     # Run install scripts
     if [ "${PARTS[0]}" == "chrome" ]; then
-      "$DIR/chrome.sh" "${PARTS[1]}"
+      "$DIR/chrome.sh" "${PARTS[1]}" "$VERBOSE"
+    elif [ "${PARTS[0]}" == "chromedriver" ]; then
+      "$DIR/chromedriver.sh" "${PARTS[1]}" "$VERBOSE"
     fi
 
   done
