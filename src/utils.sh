@@ -39,7 +39,7 @@ function download() {
   if command -v curl >/dev/null; then
     OPTIONS="--location --retry 3 --silent --fail"
     if [ "$3" -eq 1 ]; then
-      echo "Using curl to download \"$1\""
+      echo "Using curl to download $1 to $2"
       OPTIONS="$OPTIONS --show-error"
     fi
 
@@ -47,7 +47,7 @@ function download() {
   elif command -v wget >/dev/null; then
     OPTIONS="--tries=3 --quiet"
     if [ "$3" -eq 1 ]; then
-      echo "Using wget to download \"$1\""
+      echo "Using wget to download $1 to $2"
     fi
 
     wget $OPTIONS --output-document="$2" "$1"

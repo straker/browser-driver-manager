@@ -8,7 +8,7 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 ROOT_DIR="`cd "${DIR}/..";pwd`"
 
 # Import utils
-. "$DIR/utils.sh"
+source "$DIR/utils.sh"
 
 # Display usage information
 function usage() {
