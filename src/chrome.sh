@@ -84,9 +84,17 @@ if [ $OS == 'Linux' ]; then
   # Install Chrome using system installer
   # @see https://unix.stackexchange.com/questions/519773/find-package-os-distribution-manager-for-automation
   if command -v apt >/dev/null; then
-    sudo apt install "$TMP_DIR/$FILENAME"
+    if [ "$VERBOSE" -eq 1 ]; then
+      echo "Using apt to install $TMP_DIR/$FILENAME"
+    fi
+
+    sudo apt --yes --quiet install "$TMP_DIR/$FILENAME"
   elif command -v yum >/dev/null; then
-    sudo yum install "$TMP_DIR/$FILENAME"
+    if [ "$VERBOSE" -eq 1 ]; then
+      echo "Using yum to install $TMP_DIR/$FILENAME"
+    fi
+
+    sudo yum --assumeyes --quiet install "$TMP_DIR/$FILENAME"
   else
     echo "Unable to install Chrome. System does not support apt or yum"
     exit 1
