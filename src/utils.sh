@@ -15,17 +15,14 @@ function titleCase() {
 }
 
 # Detect operating system
+# @see https://stackoverflow.com/a/27776822/2124254
 # @see https://stackoverflow.com/a/18434831/2124254
 function getOS() {
   # $OSTYPE doesn't seem to work on Ubuntu Server
   OS="`uname`"
   case $OS in
     'Linux') OS='Linux';;
-    'FreeBSD') OS='FreeBSD';;
-    'WindowsNT') OS='Windows';;
     'Darwin') OS='Mac';;
-    'SunOS') OS='Solaris';;
-    'AIX') ;;
     *) ;;
   esac
   echo "$OS"
@@ -37,10 +34,12 @@ function getOS() {
 # $3 = if verbose logging is enabled
 function download() {
   if command -v curl >/dev/null; then
-    OPTIONS="--location --retry 3 --silent --fail"
+    OPTIONS="--location --retry 3 --fail"
     if [ "$3" -eq 1 ]; then
       echo "Using curl to download $1 to $2"
-      OPTIONS="$OPTIONS --show-error"
+      OPTIONS="$OPTIONS --show-error --progress-bar"
+    else
+      OPTIONS="$OPTIONS --silent"
     fi
 
     curl $OPTIONS --output "$2" "$1"

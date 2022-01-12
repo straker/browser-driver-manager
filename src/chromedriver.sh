@@ -89,8 +89,7 @@ function getChromeDriverVersion() {
 
 getChromeDriverVersion
 
-#TODO: get platform for the url
-CHROMEDRIVER_URL="https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_mac64.zip"
+CHROMEDRIVER_URL="https://chromedriver.storage.googleapis.com/$CHROMEDRIVER_VERSION/chromedriver_${lowercase $OS}64.zip"
 download "$CHROMEDRIVER_URL" "$CHROMEDRIVER_ZIP" "$VERBOSE"
 
 if command -v unzip >/dev/null; then
@@ -98,10 +97,21 @@ if command -v unzip >/dev/null; then
     echo "Unzipping ChromeDriver to $TMP_DIR"
   fi
   unzip "$CHROMEDRIVER_ZIP" -d "$TMP_DIR" > /dev/null 2>&1
+
+  if [ "$VERBOSE" -eq 1 ]; then
+    echo "Changing ChromeDriver permissions to executable"
+  fi
   chmod +x "$CHROMEDRIVER_FILE"
-  mv "$CHROMEDRIVER_FILE" /usr/local/bin
-  rm -f "$CHROMEDRIVER_FILE"
-  rm -f "$CHROMEDRIVER_ZIP"
+
+  if [ "$VERBOSE" -eq 1 ]; then
+    echo "Moving ChromeDriver to /usr/local/bin"
+  fi
+  sudo mv "$CHROMEDRIVER_FILE" /usr/local/bin
+
+  if [ "$VERBOSE" -eq 1 ]; then
+    echo "Deleting ChromeDriver zip"
+  fi
+  sudo rm -f "$CHROMEDRIVER_ZIP"
 else
   echo "Unable to install ChromeDriver. System does not support unzip"
   exit 1
