@@ -3,6 +3,28 @@
 # How functions work in bash
 # @see https://linuxize.com/post/bash-functions/
 
+# Colors
+# @see https://www.shellhacks.com/bash-colors/
+# @see https://stackoverflow.com/a/10466960/2124254
+colorReset="\033[0m"
+colorRed="\033[00;31m"
+
+# Chrome supported channels
+# @see https://www.chromium.org/getting-involved/dev-channel/
+chromeLinuxChannels=("stable" "beta" "dev")
+chromeMacChannels=("stable" "beta" "dev" "canary")
+
+# Output text in the specified color
+# $1 = color
+# $2 = text
+function color() {
+  echo -e -n "${1}${2}${colorReset}"
+}
+
+function red() {
+  color "$colorRed" "$1"
+}
+
 # Lowercase a string
 function lowercase() {
   echo "$1" | tr '[:upper:]' '[:lower:]'
@@ -14,18 +36,20 @@ function titleCase() {
   echo "$(tr '[:lower:]' '[:upper:]' <<< ${1:0:1})${1:1}"
 }
 
-# Detect operating system
-# @see https://stackoverflow.com/a/27776822/2124254
-# @see https://stackoverflow.com/a/18434831/2124254
-function getOS() {
-  # $OSTYPE doesn't seem to work on Ubuntu Server
-  OS="`uname`"
-  case $OS in
-    'Linux') OS='Linux';;
-    'Darwin') OS='Mac';;
-    *) ;;
-  esac
-  echo "$OS"
+# Show an error message
+function error() {
+  echo $(red "browser-driver-manager error:") $1
+}
+
+# Validate that the desired channel is supported
+# $1 = system
+# $2 = channel
+function validateChromeChannel() {
+  if [ $1 == "Linux" ] && [[ ! " ${chromeLinuxChannels[*]} " =~ " ${channel} " ]]; then
+    error "$1 Chrome supported channels: ${chromeLinuxChannels[*]}"
+  elif [ $1 == "MacOs" ] && [[ ! " ${chromeMacChannels[*]} " =~ " ${channel} " ]]; then
+    error "$1 Chrome supported channels: ${chromeMacChannels[*]}"
+  fi
 }
 
 # Download a file from a specific URL to a file
@@ -34,29 +58,27 @@ function getOS() {
 # $3 = if verbose logging is enabled
 function download() {
   if command -v curl >/dev/null; then
-    OPTIONS="--location --retry 3 --fail"
+    options="--location --retry 3 --fail"
     if [ "$3" -eq 1 ]; then
       echo "Using curl to download $1 to $2"
-      OPTIONS="$OPTIONS --show-error --progress-bar"
+      options="$options --show-error --progress-bar"
     else
-      OPTIONS="$OPTIONS --silent"
+      options="$options --silent"
     fi
 
-    curl $OPTIONS --output "$2" "$1"
+    curl $options --output "$2" "$1"
   elif command -v wget >/dev/null; then
-    OPTIONS="--tries=3 --quiet"
+    options="--tries=3 --quiet"
     if [ "$3" -eq 1 ]; then
       echo "Using wget to download $1 to $2"
     fi
 
-    wget $OPTIONS --output-document="$2" "$1"
+    wget $options --output-document="$2" "$1"
   else
-    echo "Unable to download file. System does not support curl or wget"
-    exit 1
+    error "Unable to download file; System does not support curl or wget"
   fi
 
   if [ ! -f "$2" ]; then
-    echo "Unable to download file. Something went wrong"
-    exit 1;
+    error "Unable to download file; Something went wrong"
   fi
 }
