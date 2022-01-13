@@ -20,8 +20,13 @@ if [ $BDM_VERBOSE -eq 1 ]; then
 fi
 
 if [ $BDM_OS == "Linux" ]; then
-  if command -v google-chrome >/dev/null; then
-    echo $(which google-chrome)
+  googleChrome="google-chrome"
+  if [ $channel != "stable" ]; then
+    googleChrome="$googleChrome-$channel"
+  fi
+
+  if command -v $googleChrome >/dev/null; then
+    echo $(which $googleChrome)
   else
     echo $(red "ERROR:") "$appname not installed"
     exit 1

@@ -24,7 +24,10 @@ fi
 
 validateChromeChannel $BDM_OS $channel
 
-filename="chrome-$channel"
+filename="google-chrome"
+if [ $channel != "stable" ]; then
+  filename="$filename-$channel"
+fi
 
 echo "Installing Google Chrome $(titleCase $channel) (this may take awhile)"
 
@@ -130,5 +133,6 @@ elif [ $BDM_OS == "MacOs" ]; then
   fi
   sudo rm -rf "$BDM_TMP_DIR/$filename"
 
-  echo "Successfully installed $($BDM_SRC_DIR/version/chrome.sh $channel)"
 fi
+
+echo "Successfully installed $($BDM_SRC_DIR/version/chrome.sh $channel)"
