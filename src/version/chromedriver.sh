@@ -10,7 +10,7 @@ fi
 
 validateChromeChannel $BDM_OS $channel
 
-output=$($BDM_SRC_DIR/which/chrome.sh "$channel")
+output=$($BDM_SRC_DIR/which/chromedriver.sh "$channel")
 path=$(getLastLine "$output")
 
 # Output everything but the last line from the output to display verbose

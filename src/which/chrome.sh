@@ -28,12 +28,16 @@ if [ $BDM_OS == "Linux" ]; then
   if command -v $googleChrome >/dev/null; then
     echo $(which $googleChrome)
   else
-    echo $(red "ERROR:") "$appname not installed"
+    error "$appname not installed"
     exit 1
   fi
 
 elif [ $BDM_OS == "MacOs" ]; then
   path="/Applications/$appname.app/Contents/MacOS/$appname"
+
+  if [ $BDM_VERBOSE -eq 1 ]; then
+    echo "Checking path $path"
+  fi
 
   if [ -f "$path" ]; then
     echo "$path"

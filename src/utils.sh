@@ -82,3 +82,7 @@ function download() {
     error "Unable to download file; Something went wrong"
   fi
 }
+
+function getLastLine() {
+  echo "${1##*$'\n'}"
+}

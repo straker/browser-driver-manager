@@ -115,6 +115,8 @@ elif [ "$command" == "which" ]; then
 
   if [ "${parts[0]}" == "chrome" ]; then
     "$BDM_SRC_DIR/which/chrome.sh" "${parts[1]}"
+  elif [ "${parts[0]}" == "chromedriver" ]; then
+    "$BDM_SRC_DIR/which/chromedriver.sh" "${parts[1]}"
   fi
 
 elif [ "$command" == "version" ]; then
@@ -122,6 +124,8 @@ elif [ "$command" == "version" ]; then
 
   if [ "${parts[0]}" == "chrome" ]; then
     "$BDM_SRC_DIR/version/chrome.sh" "${parts[1]}"
+  elif [ "${parts[0]}" == "chromedriver" ]; then
+    "$BDM_SRC_DIR/version/chromedriver.sh" "${parts[1]}"
   fi
 
 fi

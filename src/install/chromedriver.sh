@@ -10,18 +10,36 @@ source "$BDM_SRC_DIR/utils.sh"
 latestUrl="https://chromedriver.storage.googleapis.com/LATEST_RELEASE_"
 chromedriverUrl="https://chromedriver.storage.googleapis.com/index.html?path="
 
-version="auto"
+version="stable"
 if [[ $1 ]]; then
   version=$1
 fi
 
-echo "Installing ChromeDriver $version"
-
 # Find which version of Chrome is installed and use the matching
 # ChromeDriver version
-# if [ $version == "auto" ]; then
+if [ $version == "stable" ] || [ $version == "beta" ] || [ $version == "dev" ] || [ $version == "canary" ]; then
 
-# fi
+  channel=$version
+  output=$($BDM_SRC_DIR/version/chrome.sh "$version")
+  lastLine=$(getLastLine "$output")
+
+  # Output everything but the last line from the output to display
+  # verbose log info
+  IFS=$'\n' read -rd '' -a lines <<<"$output"
+  for line in "${lines[@]}"; do
+    if [ "$line" != "$lastLine" ]; then
+      echo "$line"
+    fi
+  done
+
+  # Extract the version number and major number
+  versionNumber="$(echo $lastLine | sed 's/^Google Chrome //' | sed 's/^Chromium //')"
+  version="${versionNumber%%.*}"
+
+  echo "Chrome $(titleCase $channel) version detected as $versionNumber"
+fi
+
+echo "Installing ChromeDriver $version"
 
 # Determine how to download ChromeDriver
 tries=0
