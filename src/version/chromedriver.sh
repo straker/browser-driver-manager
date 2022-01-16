@@ -12,6 +12,7 @@ validateChromeChannel $BDM_OS $channel
 
 output=$($BDM_SRC_DIR/which/chromedriver.sh "$channel")
 if [ $? -ne 0 ]; then
+  echo -e -n "$output"
   exit $?
 fi
 

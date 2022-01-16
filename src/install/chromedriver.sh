@@ -22,6 +22,7 @@ if [ $version == "stable" ] || [ $version == "beta" ] || [ $version == "dev" ] |
   channel=$version
   output=$($BDM_SRC_DIR/version/chrome.sh "$version")
   if [ $? -ne 0 ]; then
+    echo -e -n "$output"
     exit $?
   fi
 
