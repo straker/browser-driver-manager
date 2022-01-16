@@ -107,6 +107,9 @@ if [ "$command" == "install" ]; then
       "$BDM_SRC_DIR/install/chrome.sh" "${parts[1]}"
     elif [ "${parts[0]}" == "chromedriver" ]; then
       "$BDM_SRC_DIR/install/chromedriver.sh" "${parts[1]}"
+    else
+      error "${parts[0]} is not a valid browser or driver"
+      exit 1
     fi
   done
 
@@ -126,6 +129,9 @@ elif [ "$command" == "version" ]; then
     "$BDM_SRC_DIR/version/chrome.sh" "${parts[1]}"
   elif [ "${parts[0]}" == "chromedriver" ]; then
     "$BDM_SRC_DIR/version/chromedriver.sh" "${parts[1]}"
+  else
+    error "${parts[0]} is not a valid browser or driver"
+    exit 1
   fi
 
 fi

@@ -21,6 +21,10 @@ if [ $version == "stable" ] || [ $version == "beta" ] || [ $version == "dev" ] |
 
   channel=$version
   output=$($BDM_SRC_DIR/version/chrome.sh "$version")
+  if [ $? -ne 0 ]; then
+    exit $?
+  fi
+
   lastLine=$(getLastLine "$output")
 
   # Output everything but the last line from the output to display
@@ -28,13 +32,21 @@ if [ $version == "stable" ] || [ $version == "beta" ] || [ $version == "dev" ] |
   IFS=$'\n' read -rd '' -a lines <<<"$output"
   for line in "${lines[@]}"; do
     if [ "$line" != "$lastLine" ]; then
-      echo "$line"
+      echo -e -n "$line"
     fi
   done
 
   # Extract the version number and major number
   versionNumber="$(echo $lastLine | sed 's/^Google Chrome //' | sed 's/^Chromium //')"
   version="${versionNumber%%.*}"
+
+  # Ensure version is a number
+  # @see https://stackoverflow.com/a/806923
+  re='^[0-9]+$'
+  if ! [[ $version =~ $re ]] ; then
+     error "Chrome version \"$version\" is not a  number"
+     exit 1
+  fi
 
   echo "Chrome $(titleCase $channel) version detected as $versionNumber"
 fi

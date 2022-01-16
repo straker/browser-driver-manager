@@ -11,6 +11,10 @@ fi
 validateChromeChannel $BDM_OS $channel
 
 output=$($BDM_SRC_DIR/which/chromedriver.sh "$channel")
+if [ $? -ne 0 ]; then
+  exit $?
+fi
+
 path=$(getLastLine "$output")
 
 # Output everything but the last line from the output to display verbose
@@ -18,7 +22,7 @@ path=$(getLastLine "$output")
 IFS=$'\n' read -rd '' -a lines <<<"$output"
 for line in "${lines[@]}"; do
   if [ "$line" != "$path" ]; then
-    echo "$line"
+    echo -e -n "$line"
   fi
 done
 
