@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Display verbose log file descriptor
+exec 3>&1
+
 # Get path of current script
 # @see https://medium.com/@Aenon/bash-location-of-current-script-76db7fd2e388
 export BDM_SRC_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -10,6 +13,18 @@ export BDM_VERBOSE=0
 
 # Import utils
 source "$BDM_SRC_DIR/utils.sh"
+
+# Remove files in tmp directory on process kill
+function cleanup {
+  cd $BDM_TMP_DIR
+
+  # @see https://stackoverflow.com/questions/8525437/list-files-not-matching-a-pattern
+  sudo ls | grep -v "README.md" | xargs rm
+  exit $?
+}
+
+trap cleanup SIGINT
+trap cleanup SIGTERM
 
 # Detect operating system
 # @see https://stackoverflow.com/a/27776822/2124254
@@ -91,9 +106,7 @@ while [[ "$#" > 0 ]]; do
   esac
 done
 
-if [ $BDM_VERBOSE -eq 1 ]; then
-  echo "System detected as $BDM_OS"
-fi
+verboseLog "System detected as $BDM_OS"
 
 # Run install scripts
 if [ "$command" == "install" ]; then
@@ -120,6 +133,9 @@ elif [ "$command" == "which" ]; then
     "$BDM_SRC_DIR/which/chrome.sh" "${parts[1]}"
   elif [ "${parts[0]}" == "chromedriver" ]; then
     "$BDM_SRC_DIR/which/chromedriver.sh" "${parts[1]}"
+  else
+    error "${parts[0]} is not a valid browser or driver"
+    exit 1
   fi
 
 elif [ "$command" == "version" ]; then

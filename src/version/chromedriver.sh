@@ -10,21 +10,10 @@ fi
 
 validateChromeChannel $BDM_OS $channel
 
-output=$($BDM_SRC_DIR/which/chromedriver.sh "$channel")
-if [ $? -ne 0 ]; then
-  echo -e -n "$output"
-  exit $?
+path=$($BDM_SRC_DIR/which/chromedriver.sh "$channel")
+exitCode=$?
+if [ "$exitCode" -ne 0 ]; then
+  exit "$exitCode"
 fi
-
-path=$(getLastLine "$output")
-
-# Output everything but the last line from the output to display verbose
-# log info
-IFS=$'\n' read -rd '' -a lines <<<"$output"
-for line in "${lines[@]}"; do
-  if [ "$line" != "$path" ]; then
-    echo -e -n "$line"
-  fi
-done
 
 "$path" --version

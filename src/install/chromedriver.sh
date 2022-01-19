@@ -2,6 +2,7 @@
 
 chromedriverZip="$BDM_TMP_DIR/chromedriver.zip"
 chromedriverFile="$BDM_TMP_DIR/chromedriver"
+isNumberRegex='^[0-9]+$'
 
 # Import utils
 source "$BDM_SRC_DIR/utils.sh"
@@ -20,36 +21,26 @@ fi
 if [ $version == "stable" ] || [ $version == "beta" ] || [ $version == "dev" ] || [ $version == "canary" ]; then
 
   channel=$version
-  output=$($BDM_SRC_DIR/version/chrome.sh "$version")
-  if [ $? -ne 0 ]; then
-    echo -e -n "$output"
-    exit $?
+  chomeVersion=$($BDM_SRC_DIR/version/chrome.sh "$version")
+  exitCode=$?
+  if [ "$exitCode" -ne 0 ]; then
+    exit "$exitCode"
   fi
 
-  lastLine=$(getLastLine "$output")
-
-  # Output everything but the last line from the output to display
-  # verbose log info
-  IFS=$'\n' read -rd '' -a lines <<<"$output"
-  for line in "${lines[@]}"; do
-    if [ "$line" != "$lastLine" ]; then
-      echo -e -n "$line"
-    fi
-  done
-
   # Extract the version number and major number
-  versionNumber="$(echo $lastLine | sed 's/^Google Chrome //' | sed 's/^Chromium //')"
+  versionNumber="$(echo $chomeVersion | sed 's/^Google Chrome //' | sed 's/^Chromium //')"
   version="${versionNumber%%.*}"
 
   # Ensure version is a number
   # @see https://stackoverflow.com/a/806923
-  re='^[0-9]+$'
-  if ! [[ $version =~ $re ]] ; then
-     error "Chrome version \"$version\" is not a  number"
+  if ! [[ $version =~ $isNumberRegex ]]; then
+     error "Chrome version \"$version\" is not a number"
      exit 1
   fi
 
   echo "Chrome $(titleCase $channel) version detected as $versionNumber"
+elif ! [[ $version =~ $isNumberRegex ]]; then
+  validateChromeChannel $version
 fi
 
 echo "Installing ChromeDriver $version"
@@ -59,15 +50,11 @@ tries=0
 function getChromeDriverVersion() {
   latestUrl="https://chromedriver.storage.googleapis.com/LATEST_RELEASE_$version"
   if command -v curl >/dev/null; then
-    if [ $BDM_VERBOSE -eq 1 ]; then
-      echo "Using curl to get response from $latestUrl"
-    fi
+    verboseLog "Using curl to get response from $latestUrl"
 
     chromedriverVersion=$(curl --location --retry 3 --silent --fail $latestUrl)
   elif command -v wget >/dev/null; then
-    if [ $BDM_VERBOSE -eq 1 ]; then
-      echo "Using wget to get response from $latestUrl"
-    fi
+    verboseLog "Using wget to get response from $latestUrl"
 
     chromedriverVersion=$(wget --tries=3 --quiet $latestUrl)
   fi
@@ -93,9 +80,7 @@ function getChromeDriverVersion() {
     fi
   fi
 
-  if [ $BDM_VERBOSE -eq 1 ]; then
-    echo "Received response of $chromedriverVersion"
-  fi
+  verboseLog "Received response of $chromedriverVersion"
 
   if command -v chromedriver >/dev/null && chromedriver --version | grep "$chromedriverVersion" > /dev/null 2>&1; then
     echo "ChromeDriver $chromedriverVersion already installed"
@@ -111,27 +96,19 @@ elif [ $BDM_OS == "MacOs" ]; then
   chromedriverUrl="https://chromedriver.storage.googleapis.com/$chromedriverVersion/chromedriver_mac64.zip"
 fi
 
-download "$chromedriverUrl" "$chromedriverZip" "$BDM_VERBOSE"
+download "$chromedriverUrl" "$chromedriverZip"
 
 if command -v unzip >/dev/null; then
-  if [ $BDM_VERBOSE -eq 1 ]; then
-    echo "Unzipping ChromeDriver to $BDM_TMP_DIR"
-  fi
+  verboseLog "Unzipping ChromeDriver to $BDM_TMP_DIR"
   unzip "$chromedriverZip" -d "$BDM_TMP_DIR" > /dev/null 2>&1
 
-  if [ $BDM_VERBOSE -eq 1 ]; then
-    echo "Changing ChromeDriver permissions to executable"
-  fi
+  verboseLog "Changing ChromeDriver permissions to executable"
   chmod +x "$chromedriverFile"
 
-  if [ $BDM_VERBOSE -eq 1 ]; then
-    echo "Moving ChromeDriver to /usr/local/bin"
-  fi
+  verboseLog "Moving ChromeDriver to /usr/local/bin"
   sudo mv "$chromedriverFile" /usr/local/bin
 
-  if [ $BDM_VERBOSE -eq 1 ]; then
-    echo "Deleting ChromeDriver zip"
-  fi
+  verboseLog "Deleting ChromeDriver zip"
   sudo rm -f "$chromedriverZip"
 else
   error "Unable to install ChromeDriver; System does not support unzip"
@@ -144,8 +121,6 @@ if chromedriver --version | grep "$chromedriverVersion" > /dev/null 2>&1; then
 else
   echo "Unable to install ChromeDriver; Something went wrong"
 
-  if [ $BDM_VERBOSE -eq 1 ]; then
-    echo "Tried to install ChromeDriver $chromedriverVersion but installed version is $(chromedriver --version)"
-  fi
+  verboseLog "Tried to install ChromeDriver $chromedriverVersion but installed version is $(chromedriver --version)"
   exit 1
 fi

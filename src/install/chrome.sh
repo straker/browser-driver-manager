@@ -22,7 +22,7 @@ if [[ $1 ]]; then
   channel=$(lowercase $1)
 fi
 
-validateChromeChannel $BDM_OS $channel
+validateChromeChannel $channel
 
 filename="google-chrome"
 if [ $channel != "stable" ]; then
@@ -62,20 +62,16 @@ if [ $BDM_OS == "Linux" ]; then
     exit 1
   fi
 
-  download "$url" "$BDM_TMP_DIR/$filename" "$BDM_VERBOSE"
+  download "$url" "$BDM_TMP_DIR/$filename"
 
   # Install Chrome using system installer
   # @see https://unix.stackexchange.com/questions/519773/find-package-os-distribution-manager-for-automation
   if command -v apt >/dev/null; then
-    if [ "$BDM_VERBOSE" -eq 1 ]; then
-      echo "Using apt to install $BDM_TMP_DIR/$filename"
-    fi
+    verboseLog "Using apt to install $BDM_TMP_DIR/$filename"
 
     sudo apt --yes --quiet install "$BDM_TMP_DIR/$filename"
   elif command -v yum >/dev/null; then
-    if [ "$BDM_VERBOSE" -eq 1 ]; then
-      echo "Using yum to install $BDM_TMP_DIR/$filename"
-    fi
+    verboseLog "Using yum to install $BDM_TMP_DIR/$filename"
 
     sudo yum --assumeyes --quiet install "$BDM_TMP_DIR/$filename"
   else
@@ -95,13 +91,11 @@ elif [ $BDM_OS == "MacOs" ]; then
     url=$urlMacOsCanary
   fi
 
-  download "$url" "$BDM_TMP_DIR/$filename" "$BDM_VERBOSE"
+  download "$url" "$BDM_TMP_DIR/$filename"
 
   # Install application
   # @see https://itectec.com/askdifferent/bash-script-that-automates-a-software-install/
-  if [ "$BDM_VERBOSE" -eq 1 ]; then
-    echo "Mounting $filename"
-  fi
+  verboseLog "Mounting $filename"
   hdiutil attach -nobrowse -quiet -noverify "$BDM_TMP_DIR/$filename"
 
   appname="Google Chrome"
@@ -111,26 +105,18 @@ elif [ $BDM_OS == "MacOs" ]; then
 
   # copy app, remove old version first if installed
   if [[ -d "/Applications/$appname.app" ]]; then
-    if [ "$BDM_VERBOSE" -eq 1 ]; then
-      echo "Removing existing /Applications/$appname.app"
-    fi
+    verboseLog "Removing existing /Applications/$appname.app"
 
     sudo rm -rf "/Applications/$appname.app"
   fi
 
-  if [ "$BDM_VERBOSE" -eq 1 ]; then
-    echo "Copying $appname to /Applications/$appname"
-  fi
+  verboseLog "Copying $appname to /Applications/$appname"
   sudo cp -r "/Volumes/$appname/$appname.app" "/Applications/$appname.app"
 
-  if [ "$BDM_VERBOSE" -eq 1 ]; then
-    echo "Unmounting $appname"
-  fi
+  verboseLog "Unmounting $appname"
   hdiutil detach -quiet "/Volumes/$appname"
 
-  if [ "$BDM_VERBOSE" -eq 1 ]; then
-    echo "Deleting $filename"
-  fi
+  verboseLog "Deleting $filename"
   sudo rm -rf "$BDM_TMP_DIR/$filename"
 
 fi

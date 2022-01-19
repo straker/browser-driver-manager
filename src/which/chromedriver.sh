@@ -8,7 +8,7 @@ if [[ $1 ]]; then
   channel=$(lowercase $1)
 fi
 
-validateChromeChannel $BDM_OS $channel
+validateChromeChannel $channel
 
 driver="chromedriver"
 if command -v chromedriver >/dev/null; then

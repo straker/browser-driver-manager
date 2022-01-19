@@ -33,23 +33,3 @@ Additionally, `sudo` permissions are needed in order to install browsers and dri
 ```terminal
 browser-driver-manager --help
 ```
-
-<!-- 
-
-Get the currently installed version
-
-```terminal
-browser-driver-manager --installed-version chrome
-```
-
-Get the file path 
-
-```terminal
-browser-driver-manager --which chrome
-```
-
-Get the version to install
-
-```terminal
-browser-driver-manager --get-version chromedriver=auto
-``` -->
