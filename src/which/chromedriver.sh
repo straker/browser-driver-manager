@@ -11,8 +11,8 @@ fi
 validateChromeChannel $channel
 
 driver="chromedriver"
-if command -v chromedriver >/dev/null; then
-  which chromedriver
+if command -v "$driver" >/dev/null; then
+  which "$driver"
 else
   error "chromedriver is not installed"
   exit 1

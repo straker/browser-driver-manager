@@ -4,7 +4,7 @@
   "description": "A cli for managing Chrome and Firefox browsers and drivers. Espeically useful to keep Chrome and Chromedriver in-sync.",
   "bin": "./src/index.sh",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "sudo test/index.sh"
   },
   "repository": {
     "type": "git",
