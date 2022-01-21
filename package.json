@@ -1,7 +1,7 @@
 {
   "name": "browser-driver-manager",
   "version": "1.0.0",
-  "description": "A cli for managing Chrome and Firefox browsers and drivers. Espeically useful to keep Chrome and Chromedriver in-sync.",
+  "description": "A cli for managing Chrome and Firefox browsers and drivers. Especially useful to keep Chrome and Chromedriver in-sync.",
   "bin": "./src/index.sh",
   "scripts": {
     "test": "sudo test/index.sh"
