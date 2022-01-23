@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/bash
 
 chromedriverZip="$BDM_TMP_DIR/chromedriver.zip"
 chromedriverFile="$BDM_TMP_DIR/chromedriver"

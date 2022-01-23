@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/bash
 
 # Display verbose log file descriptor
 exec 3>&1

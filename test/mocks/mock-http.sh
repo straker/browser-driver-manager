@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/bash
 
 assetDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 

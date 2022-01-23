@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/bash
 
 # Import utils
 source "$BDM_SRC_DIR/utils.sh"

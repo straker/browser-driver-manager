@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/bash
 
 # How functions work in bash
 # @see https://linuxize.com/post/bash-functions/

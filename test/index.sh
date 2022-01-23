@@ -1,4 +1,4 @@
-#!/bin/bash
+#! /bin/bash
 
 testDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 rootDir="$(cd "${testDir}/.." && pwd)"
@@ -14,9 +14,9 @@ chromeBetaVersion=$(sh $testDir/mocks/mock-chrome-beta)
 chromeDevVersion=$(sh $testDir/mocks/mock-chrome-dev)
 chromeCanaryVersion=$(sh $testDir/mocks/mock-chrome-canary)
 
-# linuxChromeStablePath=$(which google-chrome)
-# linuxChromeBetaPath=$(which google-chrome-beta)
-# linuxChromeDevPath=$(which google-chrome-dev)
+linuxChromeStablePath="/usr/bin/google-chrome"
+linuxChromeBetaPath="/usr/bin/google-chrome-beta"
+linuxChromeDevPath="/usr/bin/google-chrome-dev"
 
 macChromePath="/Applications/Google Chrome"
 macChromeDir="Contents/MacOS"
@@ -93,9 +93,8 @@ oneTimeSetUp() {
     fi
   fi
 
-  # Modify the path to use mock curl / wget commands instead of the
-  # built in ones. That way we can control the responses and check
-  # that we are hitting the correct URLs
+  # Modify the path to use mock commands instead of the
+  # built in ones. That way we can control the responses
   originalPath=$(echo $PATH)
   export PATH="$testDir/mocks:$PATH"
 }
@@ -358,7 +357,7 @@ test_version_chrome_should_accept_canary_channel() {
     startSkipping
   fi
 
-  output=$($srcDir/index.sh version chrome=canary)
+  output=$($srcDir/index.sh version chrome=canary 2>/dev/null)
   assertEquals "$output" "$chromeCanaryVersion"
 }
 
@@ -383,17 +382,21 @@ test_version_chrome_should_output_verbose_logs_with_flag() {
 # Install Chromedriver
 #-------------------------------------------------
 test_install_chromedriver_should_accept_stable_channel_and_get_version_from_chrome() {
-  output=$($srcDir/index.sh install chromedriver=stable 2>/dev/null)
+  # Linux runs sudo commands with its own PATH variable, so in order
+  # to add the mock path to the sudo PATH we need to use
+  # "sudo env PATH="$PATH" <command>"
+  # @see https://unix.stackexchange.com/questions/8646/why-are-path-variables-different-when-running-via-sudo-and-su
+  output=$(sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=stable 2>/dev/null)
   assertContains "$output" "Installing ChromeDriver 97"
 }
 
 test_install_chromedriver_should_accept_beta_channel_and_get_version_from_chrome() {
-  output=$($srcDir/index.sh install chromedriver=beta 2>/dev/null)
+  output=$(sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=beta 2>/dev/null)
   assertContains "$output" "Installing ChromeDriver 98"
 }
 
 test_install_chromedriver_should_accept_dev_channel_and_get_version_from_chrome() {
-  output=$($srcDir/index.sh install chromedriver=dev 2>/dev/null)
+  output=$(sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=dev 2>/dev/null)
   assertContains "$output" "Installing ChromeDriver 99"
 }
 
@@ -403,12 +406,12 @@ test_install_chromedriver_should_accept_canary_channel_and_get_version_from_chro
     startSkipping
   fi
 
-  output=$($srcDir/index.sh install chromedriver=canary 2>/dev/null)
+  output=$(sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=canary 2>/dev/null)
   assertContains "$output" "Installing ChromeDriver 100"
 }
 
 test_install_chromedriver_should_error_for_invalid_channel() {
-  output=$($srcDir/index.sh install chromedriver=invalid 2>&1)
+  output=$(sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=invalid 2>&1)
   exitCode=$?
   assertEquals "$exitCode" 1
   assertContains "$output" "Chrome supported channels"
@@ -421,7 +424,7 @@ test_install_chromedriver_should_error_if_chrome_version_is_bad() {
     sudo cp "$testDir/mocks/mock-bad-chrome" "$macChromeStablePath"
   fi
 
-  output=$($srcDir/index.sh install chromedriver 2>&1)
+  output=$(sudo env PATH="$PATH" $srcDir/index.sh install chromedriver 2>&1)
   exitCode=$?
   assertEquals "$exitCode" 1
   assertContains "$output" "Chrome version \"Not a Number\" is not a number"
@@ -434,7 +437,7 @@ test_install_chromedriver_should_error_if_not_installed() {
     sudo rm -f "$macChromeStablePath"
   fi
 
-  output=$($srcDir/index.sh install chromedriver=stable 2>&1)
+  output=$(sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=stable 2>&1)
   exitCode=$?
   assertEquals "$exitCode" 1
   assertContains "$output" "Google Chrome is not installed"
@@ -442,24 +445,24 @@ test_install_chromedriver_should_error_if_not_installed() {
 
 
 test_install_chromedriver_should_print_chrome_version() {
-  output=$($srcDir/index.sh install chromedriver=stable 2>/dev/null)
+  output=$(sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=stable 2>/dev/null)
   assertContains "$output" "Chrome Stable version detected as 97"
 }
 
 test_install_chromedriver_should_print_chromedriver_version_to_install() {
-  output=$($srcDir/index.sh install chromedriver=97 2>/dev/null)
+  output=$(sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=97 2>/dev/null)
   assertContains "$output" "Installing ChromeDriver 97"
 }
 
 test_install_chromedriver_should_get_lastest_release_using_version() {
-  $srcDir/index.sh install chromedriver=97 >/dev/null 2>/dev/null
+  sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=97 >/dev/null 2>/dev/null
   mockLogs=$(cat "$testDir/mocks/mock-log-file.txt")
   assertContains "$mockLogs" "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_97"
 }
 
 test_install_chromedriver_should_use_one_version_lower_and_try_again_if_version_is_not_found() {
   # version >100 is used in mock-http to return a bad request
-  output=$($srcDir/index.sh install chromedriver=101 2>/dev/null)
+  output=$(sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=101 2>/dev/null)
   mockLogs=$(cat "$testDir/mocks/mock-log-file.txt")
   assertContains "$output" "ChromeDriver 101 not found. Retrying with ChromeDriver 100"
   assertContains "$mockLogs" "https://chromedriver.storage.googleapis.com/LATEST_RELEASE_101"
@@ -467,14 +470,14 @@ test_install_chromedriver_should_use_one_version_lower_and_try_again_if_version_
 }
 
 test_install_chromedriver_should_error_if_chromedriver_version_is_not_available() {
-  output=$($srcDir/index.sh install chromedriver=200 2>&1)
+  output=$(sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=200 2>&1)
   exitCode=$?
   assertEquals "$exitCode" 1
   assertContains "$output" "Unable to get ChromeDriver version; Something went wrong"
 }
 
 test_install_chromedriver_should_exit_if_chromedriver_version_already_is_installed() {
-  output=$($srcDir/index.sh install chromedriver=97 2>/dev/null)
+  output=$(sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=97 2>/dev/null)
   exitCode=$?
   assertEquals "$exitCode" 0
   assertContains "$output" "ChromeDriver $chromedriverVersionString already installed"
@@ -482,7 +485,7 @@ test_install_chromedriver_should_exit_if_chromedriver_version_already_is_install
 
 test_install_chromedriver_should_download_zip_from_version() {
   sudo rm -f "$chromedriverPath"
-  output=$($srcDir/index.sh install chromedriver=97 2>/dev/null)
+  output=$(sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=97 2>/dev/null)
   mockLogs=$(cat "$testDir/mocks/mock-log-file.txt")
 
   if [ $os == "Linux" ]; then
@@ -494,28 +497,28 @@ test_install_chromedriver_should_download_zip_from_version() {
 
 test_install_chromedriver_should_unzip_download() {
   sudo rm -f "$chromedriverPath"
-  $srcDir/index.sh install chromedriver=97 >/dev/null 2>/dev/null
+  sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=97 >/dev/null 2>/dev/null
   mockLogs=$(cat "$testDir/mocks/mock-log-file.txt")
   assertContains "$mockLogs" "unzip $tmpDir/chromedriver.zip -d $tmpDir"
 }
 
 test_install_chromedriver_should_change_permissions_of_download() {
   sudo rm -f "$chromedriverPath"
-  $srcDir/index.sh install chromedriver=97 >/dev/null 2>/dev/null
+  sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=97 >/dev/null 2>/dev/null
   mockLogs=$(cat "$testDir/mocks/mock-log-file.txt")
   assertContains "$mockLogs" "chmod +x $tmpDir/chromedriver"
 }
 
 test_install_chromedriver_should_move_download() {
   sudo rm -f "$chromedriverPath"
-  $srcDir/index.sh install chromedriver=97 >/dev/null 2>/dev/null
+  sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=97 >/dev/null 2>/dev/null
   mockLogs=$(cat "$testDir/mocks/mock-log-file.txt")
   assertContains "$mockLogs" "mv $tmpDir/chromedriver /usr/local/bin"
 }
 
 test_install_chromedriver_should_cleanup_zip() {
   sudo rm -f "$chromedriverPath"
-  $srcDir/index.sh install chromedriver=97 >/dev/null 2>/dev/null
+  sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=97 >/dev/null 2>/dev/null
 
   if [[ -f "$tmpDir/chromedriver.zip" ]]; then
     fail "Zip was not removed"
@@ -524,20 +527,20 @@ test_install_chromedriver_should_cleanup_zip() {
 
 test_install_chromedriver_should_verify_install_matches_version() {
   sudo rm -f "$chromedriverPath"
-  output=$($srcDir/index.sh install chromedriver=97 2>/dev/null)
+  output=$(sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=97 2>/dev/null)
   assertContains "$output" "Successfully installed ChromeDriver $chromedriverVersionString"
 }
 
 test_install_chromedriver_should_error_if_installed_version_does_not_match() {
   sudo rm -f "$chromedriverPath"
-  output=$($srcDir/index.sh install chromedriver=98 2>&1)
+  output=$(sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=98 2>&1)
   exitCode=$?
   assertEquals "$exitCode" 1
   assertContains "$output" "Unable to install ChromeDriver; Something went wrong"
 }
 
 test_install_chromedriver_should_output_verbose_logs_with_flag() {
-  output=$($srcDir/index.sh install chromedriver=97 --verbose)
+  output=$(sudo env PATH="$PATH" $srcDir/index.sh install chromedriver=97 --verbose)
   assertContains "$output" "Received response of $chromedriverVersionString"
 }
 
