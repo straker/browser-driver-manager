@@ -63,6 +63,10 @@ if [ $BDM_OS == "Linux" ]; then
   fi
 
   download "$url" "$BDM_TMP_DIR/$filename"
+  exitCode=$?
+  if [ "$exitCode" -ne 0 ]; then
+    exit "$exitCode"
+  fi
 
   # Install Chrome using system installer
   # @see https://unix.stackexchange.com/questions/519773/find-package-os-distribution-manager-for-automation
@@ -92,6 +96,10 @@ elif [ $BDM_OS == "MacOs" ]; then
   fi
 
   download "$url" "$BDM_TMP_DIR/$filename"
+  exitCode=$?
+  if [ "$exitCode" -ne 0 ]; then
+    exit "$exitCode"
+  fi
 
   # Install application
   # @see https://itectec.com/askdifferent/bash-script-that-automates-a-software-install/

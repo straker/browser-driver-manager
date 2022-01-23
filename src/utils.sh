@@ -58,10 +58,10 @@ function verboseLog() {
 
 # Validate that the desired channel is supported
 function validateChromeChannel() {
-  if [ $BDM_OS == "Linux" ] && [[ ! " ${chromeLinuxChannels[*]} " =~ " ${channel} " ]]; then
+  if [ $BDM_OS == "Linux" ] && [[ ! " ${chromeLinuxChannels[*]} " =~ " ${1} " ]]; then
     error "$BDM_OS Chrome supported channels: ${chromeLinuxChannels[*]}"
     exit 1
-  elif [ $BDM_OS == "MacOs" ] && [[ ! " ${chromeMacChannels[*]} " =~ " ${channel} " ]]; then
+  elif [ $BDM_OS == "MacOs" ] && [[ ! " ${chromeMacChannels[*]} " =~ " ${1} " ]]; then
     error "$BDM_OS Chrome supported channels: ${chromeMacChannels[*]}"
     exit 1
   fi
@@ -89,13 +89,11 @@ function download() {
     wget $options --output-document="$2" "$1"
   else
     error "Unable to download file; System does not support curl or wget"
+    exit 1
   fi
 
   if [ ! -f "$2" ]; then
     error "Unable to download file; Something went wrong"
+    exit 1
   fi
-}
-
-function getLastLine() {
-  echo "${1##*$'\n'}"
 }

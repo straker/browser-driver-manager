@@ -9,7 +9,6 @@ source "$BDM_SRC_DIR/utils.sh"
 
 # @see https://chromedriver.chromium.org/downloads/version-selection
 latestUrl="https://chromedriver.storage.googleapis.com/LATEST_RELEASE_"
-chromedriverUrl="https://chromedriver.storage.googleapis.com/index.html?path="
 
 version="stable"
 if [[ $1 ]]; then
@@ -82,6 +81,8 @@ function getChromeDriverVersion() {
 
   verboseLog "Received response of $chromedriverVersion"
 
+  echo "chromedriver already installed: $(chromedriver --version)"
+
   if command -v chromedriver >/dev/null && chromedriver --version | grep "$chromedriverVersion" > /dev/null 2>&1; then
     echo "ChromeDriver $chromedriverVersion already installed"
     exit 0
@@ -97,6 +98,10 @@ elif [ $BDM_OS == "MacOs" ]; then
 fi
 
 download "$chromedriverUrl" "$chromedriverZip"
+exitCode=$?
+if [ "$exitCode" -ne 0 ]; then
+  exit "$exitCode"
+fi
 
 if command -v unzip >/dev/null; then
   verboseLog "Unzipping ChromeDriver to $BDM_TMP_DIR"

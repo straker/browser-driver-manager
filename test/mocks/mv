@@ -1,0 +1,10 @@
+#!/bin/bash
+
+assetDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+echo "mv $@" >> $assetDir/mock-log-file.txt
+
+# copy mock instead of move
+if [[ "$2" == "/usr/local/bin" ]]; then
+  cp "$assetDir/mock-chromedriver97" "$2/chromedriver"
+fi

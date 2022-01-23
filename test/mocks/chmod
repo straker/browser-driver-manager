@@ -1,0 +1,5 @@
+#!/bin/bash
+
+assetDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+
+echo "chmod $@" >> $assetDir/mock-log-file.txt
