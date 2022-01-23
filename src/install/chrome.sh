@@ -1,5 +1,12 @@
 #! /bin/bash
 
+# Force install script to run in sudo privileges
+# @see https://serverfault.com/a/677876
+if [[ $EUID -ne 0 ]]; then
+  echo "$0 is not running as root. Try using \"sudo $0\""
+  exit 2
+fi
+
 # Import utils
 source "$BDM_SRC_DIR/utils.sh"
 
@@ -73,11 +80,11 @@ if [ $BDM_OS == "Linux" ]; then
   if command -v apt >/dev/null; then
     verboseLog "Using apt to install $BDM_TMP_DIR/$filename"
 
-    sudo apt --yes --quiet install "$BDM_TMP_DIR/$filename"
+    apt --yes --quiet install "$BDM_TMP_DIR/$filename"
   elif command -v yum >/dev/null; then
     verboseLog "Using yum to install $BDM_TMP_DIR/$filename"
 
-    sudo yum --assumeyes --quiet install "$BDM_TMP_DIR/$filename"
+    yum --assumeyes --quiet install "$BDM_TMP_DIR/$filename"
   else
     error "Unable to install Google Chrome; System does not support apt or yum"
     exit 1
@@ -115,17 +122,17 @@ elif [ $BDM_OS == "MacOs" ]; then
   if [[ -d "/Applications/$appname.app" ]]; then
     verboseLog "Removing existing /Applications/$appname.app"
 
-    sudo rm -rf "/Applications/$appname.app"
+    rm -rf "/Applications/$appname.app"
   fi
 
   verboseLog "Copying $appname to /Applications/$appname"
-  sudo cp -r "/Volumes/$appname/$appname.app" "/Applications/$appname.app"
+  cp -r "/Volumes/$appname/$appname.app" "/Applications/$appname.app"
 
   verboseLog "Unmounting $appname"
   hdiutil detach -quiet "/Volumes/$appname"
 
   verboseLog "Deleting $filename"
-  sudo rm -rf "$BDM_TMP_DIR/$filename"
+  rm -rf "$BDM_TMP_DIR/$filename"
 
 fi
 

@@ -1,5 +1,12 @@
 #! /bin/bash
 
+# Force install script to run in sudo privileges
+# @see https://serverfault.com/a/677876
+if [[ $EUID -ne 0 ]]; then
+  echo "$0 is not running as root. Try using \"sudo $0\""
+  exit 2
+fi
+
 chromedriverZip="$BDM_TMP_DIR/chromedriver.zip"
 chromedriverFile="$BDM_TMP_DIR/chromedriver"
 isNumberRegex='^[0-9]+$'
@@ -111,10 +118,10 @@ if command -v unzip >/dev/null; then
   chmod +x "$chromedriverFile"
 
   verboseLog "Moving ChromeDriver to /usr/local/bin"
-  sudo mv "$chromedriverFile" /usr/local/bin
+  mv "$chromedriverFile" /usr/local/bin
 
   verboseLog "Deleting ChromeDriver zip"
-  sudo rm -f "$chromedriverZip"
+  rm -f "$chromedriverZip"
 else
   error "Unable to install ChromeDriver; System does not support unzip"
   exit 1
