@@ -96,10 +96,18 @@ oneTimeSetUp() {
 
   # Move mock files into tmp dir for file download confirmation
   sudo cp "$testDir/mocks/mock-chromedriver.zip" "$tmpDir/chromedriver.zip"
+
+  # Create fake files that are downloaded
   sudo touch "$tmpDir/google-chrome.dmg"
   sudo touch "$tmpDir/google-chrome-beta.dmg"
   sudo touch "$tmpDir/google-chrome-dev.dmg"
   sudo touch "$tmpDir/google-chrome-canary.dmg"
+  sudo touch "$tmpDir/google-chrome.deb"
+  sudo touch "$tmpDir/google-chrome-beta.deb"
+  sudo touch "$tmpDir/google-chrome-dev.deb"
+  sudo touch "$tmpDir/google-chrome.rpm"
+  sudo touch "$tmpDir/google-chrome-beta.rpm"
+  sudo touch "$tmpDir/google-chrome-dev.rpm"
 }
 
 oneTimeTearDown() {
@@ -107,7 +115,7 @@ oneTimeTearDown() {
     cleanedUp=true
 
     # Clear the contents of the mock-log-file
-    # > "$testDir/mocks/mock-log-file.txt"
+    > "$testDir/mocks/mock-log-file.txt"
 
     sudo rm -f "$tmpDir/chromedriver.zip"
     sudo rm -rf "$tmpDir/google-chrome"*
