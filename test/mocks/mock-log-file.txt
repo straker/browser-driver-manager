@@ -1,6 +1,0 @@
-https://dl.google.com/chrome/mac/universal/dev/googlechromedev.dmg
-hdiutil attach -nobrowse -quiet -noverify /Users/straker/projects/browser-driver-manager/tmp/google-chrome-dev.dmg
-rm -rf /Applications/Google Chrome Dev.app
-cp -r /Volumes/Google Chrome Dev/Google Chrome Dev.app /Applications/Google Chrome Dev.app
-hdiutil detach -quiet /Volumes/Google Chrome Dev
-rm -rf /Users/straker/projects/browser-driver-manager/tmp/google-chrome-dev.dmg

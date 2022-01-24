@@ -835,8 +835,8 @@ test_install_chrome_mac_should_not_output_verbose_logs() {
     startSkipping
   fi
 
-  output=$($srcDir/index.sh install chrome=beta)
-  assertNotContains "$output" "Mounting Google Chrome Beta"
+  output=$(sudo env PATH="$testDir/mocks:$PATH" $srcDir/index.sh install chrome=beta)
+  assertNotContains "$output" "Mounting google-chrome-beta.dmg"
 }
 
 test_install_chrome_mac_should_output_verbose_logs_with_flag() {
@@ -844,8 +844,8 @@ test_install_chrome_mac_should_output_verbose_logs_with_flag() {
     startSkipping
   fi
 
-  output=$($srcDir/index.sh install chrome=beta --verbose)
-  assertContains "$output" "Mounting Google Chrome Beta"
+  output=$(sudo env PATH="$testDir/mocks:$PATH" $srcDir/index.sh install chrome=beta --verbose)
+  assertContains "$output" "Mounting google-chrome-beta.dmg"
 }
 
 test_install_chrome_linux_should_install_chrome_stable() {

@@ -3,8 +3,8 @@
 # Force install script to run in sudo privileges
 # @see https://serverfault.com/a/677876
 if [[ $EUID -ne 0 ]]; then
-  echo "$0 is not running as root. Try using \"sudo $0\""
-  exit 2
+  echo "$0 is not running as root. Try using sudo"
+  exit 1
 fi
 
 # Import utils
