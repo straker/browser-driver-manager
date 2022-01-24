@@ -223,7 +223,7 @@ test_which_chromedriver_should_accept_canary_channel() {
     startSkipping
   fi
 
-  output=$($srcDir/index.sh which chromedriver=canary)
+  output=$($srcDir/index.sh which chromedriver=canary 2>/dev/null)
   assertEquals "$output" "$chromedriverPath"
 }
 
@@ -883,7 +883,7 @@ test_install_chrome_linux_should_not_output_verbose_logs() {
     startSkipping
   fi
 
-  output=$($srcDir/index.sh install chrome=beta)
+  output=$(sudo env PATH="$testDir/mocks:$PATH" $srcDir/index.sh install chrome=beta)
   assertNotContains "$output" "Using apt to install $tmpDir/google-chrome-beta"
 }
 
@@ -892,7 +892,7 @@ test_install_chrome_linux_should_output_verbose_logs_with_flag() {
     startSkipping
   fi
 
-  output=$($srcDir/index.sh install chrome=beta --verbose)
+  output=$(sudo env PATH="$testDir/mocks:$PATH" $srcDir/index.sh install chrome=beta --verbose)
   assertContains "$output" "Using apt to install $tmpDir/google-chrome-beta"
 }
 
