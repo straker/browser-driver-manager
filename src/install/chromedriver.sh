@@ -88,8 +88,6 @@ function getChromeDriverVersion() {
 
   verboseLog "Received response of $chromedriverVersion"
 
-  echo "chromedriver already installed: $(chromedriver --version)"
-
   if command -v chromedriver >/dev/null && chromedriver --version | grep "$chromedriverVersion" > /dev/null 2>&1; then
     echo "ChromeDriver $chromedriverVersion already installed"
     exit 0
