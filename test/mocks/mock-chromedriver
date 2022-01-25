@@ -1,0 +1,5 @@
+#! /bin/sh
+# The version string non-major numbers (everything past the first
+# number set) must match what mock-http returns as the version string
+# for tests to work correct
+echo "ChromeDriver 97.0.1234.56 (adefa7837d02a07a604c1e6eff0b3a09422ab88d-refs/branch-heads/4692@{#1247})"

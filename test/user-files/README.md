@@ -1,0 +1,1 @@
+Intentionally left empty to allow moving user files for tests. Git cannot commit empty directories so a file must exist in the directory in order for the directory to be committed.
