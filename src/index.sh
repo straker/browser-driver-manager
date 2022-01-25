@@ -4,9 +4,24 @@
 # @see https://stackoverflow.com/questions/64530573/in-bash-how-to-capture-some-output-in-variable-letting-rest-got-to-standard-ou
 exec 3>&1
 
-# Get path of current script
-# @see https://medium.com/@Aenon/bash-location-of-current-script-76db7fd2e388
-export BDM_SRC_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+# Get path of current script, following symlinks (such as node_modules/.bin) or when run through the $PATH
+# @see https://stackoverflow.com/a/697552/2124254
+
+# get the absolute path of the executable
+selfPath=$(cd -P -- "$(dirname -- "$0")" && pwd -P) && selfPath=$selfPath/$(basename -- "$0")
+
+# resolve symlinks
+while [[ -h $selfPath ]]; do
+  # 1) cd to directory of the symlink
+  # 2) cd to the directory of where the symlink points
+  # 3) get the pwd
+  # 4) append the basename
+  dir=$(dirname -- "$selfPath")
+  sym=$(readlink "$selfPath")
+  selfPath=$(cd "$dir" && cd "$(dirname -- "$sym")" && pwd)/$(basename -- "$sym")
+done
+
+export BDM_SRC_DIR="$(dirname $selfPath)"
 export BDM_ROOT_DIR="$(cd "${BDM_SRC_DIR}/.." && pwd)"
 export BDM_TMP_DIR="$BDM_ROOT_DIR/tmp"
 
