@@ -230,14 +230,29 @@ test_which_should_output_usage_with_no_args() {
   assertContains "$output" "which [ chrome | chromedriver ]"
 }
 
+test_which_should_output_error_for_invald_browser() {
+  output=$($srcDir/index.sh which invalid 2>&1)
+  assertContains "$output" "invalid is not a valid browser or driver"
+}
+
 test_version_should_output_usage_with_no_args() {
   output=$($srcDir/index.sh version)
   assertContains "$output" "version [ chrome | chromedriver ]"
 }
 
+test_version_should_output_error_for_invald_browser() {
+  output=$($srcDir/index.sh version invalid 2>&1)
+  assertContains "$output" "invalid is not a valid browser or driver"
+}
+
 test_install_should_output_usage_with_no_args() {
   output=$($srcDir/index.sh install)
   assertContains "$output" "install [ chrome | chromedriver ]"
+}
+
+test_install_should_output_error_for_invald_browser() {
+  output=$($srcDir/index.sh install invalid 2>&1)
+  assertContains "$output" "invalid is not a valid browser or driver"
 }
 
 #-------------------------------------------------

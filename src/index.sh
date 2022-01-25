@@ -44,7 +44,7 @@ esac
 
 # Display help information
 function help() {
-  echo "usage: $0 [options] [command] browser(s)"
+  echo "usage: $0 [options] [command]"
   echo ""
   echo "commands:"
   echo "  install        Install browsers or drivers"
