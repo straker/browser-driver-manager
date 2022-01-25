@@ -10,16 +10,18 @@ npm install browser-driver-manager
 ## Usage
 
 ```terminal
-browser-driver-manager --install chrome=beta,chromedriver=auto
+browser-driver-manager install chrome=beta chromedriver
 ```
 
 ## Supported Platforms and Browsers
 
-Currently only MacOS and Linux platforms are supported, and Chrome and Firefox browsers and drivers.
+Currently only MacOS and Linux platforms, and Chrome browser and drivers are supported. Firefox support is planned. 
+
+Currently there are no plans to support Windows. If you need Windows support please reach out, but understand that adding Windows support is a paid feature request.
 
 ## System Requirements
 
-The system must support the following commands:
+Using the `version` or `which` commands do not require any bash built in commands. The `install` command requires the following support:
 
 - `curl` or `wget` to download files
 - `dpkg` or `rpm` to extract browser applications
@@ -28,8 +30,16 @@ The system must support the following commands:
 
 Additionally, `sudo` permissions are needed in order to install browsers and drivers.
 
-## Options
+## Commands and Options
 
-```terminal
-browser-driver-manager --help
-```
+### Commands
+
+- **install:** Install browsers or drivers
+- **which:** Get the installed version of the browser or driver
+- **version:** Get the installed location of the browser or driver
+
+### Options
+
+- **-h,--help:** Display the help information
+- **-v,--version:** Display the version information
+- **-verbose:** Output verbose logs

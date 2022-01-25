@@ -1,6 +1,7 @@
 #! /bin/bash
 
 # Display verbose log file descriptor
+# @see https://stackoverflow.com/questions/64530573/in-bash-how-to-capture-some-output-in-variable-letting-rest-got-to-standard-ou
 exec 3>&1
 
 # Get path of current script
@@ -43,13 +44,24 @@ esac
 
 # Display help information
 function help() {
-  echo "usage: $0 -i [browsers]"
+  echo "usage: $0 [options] [command] browser(s)"
+  echo ""
+  echo "commands:"
+  echo "  install        Install browsers or drivers"
+  echo "  version        Get the installed version of the browser or driver"
+  echo "  which          Get the installed location of the browser or driver"
   echo ""
   echo "options:"
-  echo "  -i, --install [browsers]   Install the list of browsers"
-  echo "  -h, --help                 Display this help and exit"
-  echo "  -v, --version              Output version information and exit"
-  echo "  --verbose                  Output verbose debugging logs"
+  echo "  -h, --help     Display this help and exit"
+  echo "  -v, --version  Output version information and exit"
+  echo "  --verbose      Output verbose logs"
+  echo ""
+  echo "examples:"
+  echo "  $0 install chrome"
+  echo "  $0 install chrome=beta chromedriver=beta"
+  echo "  $0 install chromedriver=97"
+  echo "  $0 version chrome"
+  echo "  $0 which chromedriver"
 }
 
 # Display version from package.json file
@@ -78,10 +90,20 @@ while [[ "$#" > 0 ]]; do
       command="install";
       shift ;;
     which)
+      if [[ ! $2 ]]; then
+        echo "usage: $0 which [ chrome | chromedriver ] [{=version}]"
+        exit 1
+      fi
+
       command="which"
       which=$(lowercase $2)
       shift 2 ;;
     version)
+      if [[ ! $2 ]]; then
+        echo "usage: $0 version [ chrome | chromedriver ] [{=version}]"
+        exit 1
+      fi
+
       command="version"
       version=$(lowercase $2)
       shift 2 ;;
@@ -110,6 +132,11 @@ verboseLog "System detected as $BDM_OS"
 
 # Run install scripts
 if [ "$command" == "install" ]; then
+  if [[ ${#install[@]} -eq 0 ]]; then
+    echo "usage: $0 install [ chrome | chromedriver ] [{=version}]..."
+    exit 1
+  fi
+
   for package in "${install[@]}"; do
     # Split string
     # @see https://linuxhandbook.com/bash-split-string/

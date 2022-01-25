@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "A cli for managing Chrome and Firefox browsers and drivers. Especially useful to keep Chrome and Chromedriver in-sync.",
   "bin": "./src/index.sh",
+  "files":  [
+    "src/"
+  ],
   "scripts": {
     "test": "sudo test/index.sh"
   },

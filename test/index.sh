@@ -186,6 +186,60 @@ setUp() {
   fi
 }
 
+# Display version from package.json file
+# @see https://gist.github.com/DarrenN/8c6a5b969481725a4413
+function version() {
+  echo $(cat "$rootDir/package.json" \
+    | grep version \
+    | head -1 \
+    | awk -F: '{ print $2 }' \
+    | sed 's/[",]//g' \
+    | tr -d '[[:space:]]')
+}
+
+#-------------------------------------------------
+# Main script
+#-------------------------------------------------
+test_should_output_usage() {
+  output=$($srcDir/index.sh)
+  assertContains "$output" "usage:"
+}
+
+test_should_output_usage_with_option_h() {
+  output=$($srcDir/index.sh -h)
+  assertContains "$output" "usage:"
+}
+
+test_should_output_usage_with_option_help() {
+  output=$($srcDir/index.sh --help)
+  assertContains "$output" "usage:"
+}
+
+test_should_output_version_with_option_v() {
+  output=$($srcDir/index.sh -v)
+  assertContains "$output" $(version)
+}
+
+test_should_output_version_with_option_version() {
+  output=$($srcDir/index.sh --version)
+  assertContains "$output" $(version)
+}
+
+test_which_should_output_usage_with_no_args() {
+  output=$($srcDir/index.sh which)
+  assertContains "$output" "which [ chrome | chromedriver ]"
+}
+
+test_version_should_output_usage_with_no_args() {
+  output=$($srcDir/index.sh version)
+  assertContains "$output" "version [ chrome | chromedriver ]"
+}
+
+test_install_should_output_usage_with_no_args() {
+  output=$($srcDir/index.sh install)
+  assertContains "$output" "install [ chrome | chromedriver ]"
+}
+
 #-------------------------------------------------
 # Which Chromedriver
 #-------------------------------------------------

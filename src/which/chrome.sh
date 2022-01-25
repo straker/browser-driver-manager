@@ -39,7 +39,6 @@ elif [ $BDM_OS == "MacOs" ]; then
     echo "$path"
     exit 0
   else
-    echo  "ERROR!"
     error "$appname is not installed"
     exit 1
   fi
