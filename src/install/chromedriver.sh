@@ -27,14 +27,14 @@ fi
 if [ $version == "stable" ] || [ $version == "beta" ] || [ $version == "dev" ] || [ $version == "canary" ]; then
 
   channel=$version
-  chomeVersion=$($BDM_SRC_DIR/version/chrome.sh "$version")
+  chromeVersion=$($BDM_SRC_DIR/version/chrome.sh "$version")
   exitCode=$?
   if [ "$exitCode" -ne 0 ]; then
     exit "$exitCode"
   fi
 
   # Extract the version number and major number
-  versionNumber="$(echo $chomeVersion | sed 's/^Google Chrome //' | sed 's/^Chromium //')"
+  versionNumber="$(echo $chromeVersion | sed 's/^Google Chrome //' | sed 's/^Chromium //')"
   version="${versionNumber%%.*}"
 
   # Ensure version is a number
