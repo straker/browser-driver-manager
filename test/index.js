@@ -175,6 +175,15 @@ describe('browser-driver-manager', () => {
       expect(spawnStub.calledWith(sinon.match.string, expected)).to.be.true;
     });
 
+    it('should error if chromedriver version is invalid', async () => {
+      const args = ['install', 'chromedriver=invalid'];
+      console.log = mockConsoleLog;
+      console.error = mockConsoleError;
+      await browserDriverManager(args);
+
+      expect(mockConsoleError.calledWith(sinon.match.string, 'Chrome version "invalid" is not a number')).to.be.true;
+    });
+
     it('should correctly get major version of chrome', async () => {
       const args = ['install', 'chromedriver'];
       mockStdoutChunk = 'Google Chrome 97.0.4692.71';

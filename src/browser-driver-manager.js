@@ -197,7 +197,7 @@ function runBashScript({
     // percent through stderr
     child.stderr.on('data', chunk => {
 
-      // mimic download percent bar by manually
+      // mimic download percent bar by manually clearing lines
       // @see https://stackoverflow.com/questions/17309749/node-js-console-log-is-it-possible-to-update-a-line-rather-than-create-a-new-l
       if (chunk.indexOf('\r') !== -1) {
         process.stdout.clearLine();
