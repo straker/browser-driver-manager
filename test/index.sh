@@ -6,6 +6,21 @@ rootDir="$(cd "${testDir}/.." && pwd)"
 srcDir="$rootDir/src"
 tmpDir="$rootDir/tmp"
 
+# running the script from npm appends node_modules to the PATH, which
+# means the chromedriverPath will not be /user/local/bin anymore (
+# and breaks tests). So we just need to remove any paths that contains
+# node_modules and rebuild the PATH variable without them
+IFS=':' read -ra paths <<< "$PATH"
+pathArray=()
+for pathStr in "${paths[@]}"; do
+  if [[ "$pathStr" != *"node_modules"* ]]; then
+    pathArray+=($pathStr)
+  fi
+done
+path=$(printf ":%s" "${pathArray[@]}")
+path=${path:1}
+PATH="$path"
+
 chromedriverPath="/usr/local/bin/chromedriver"
 chromedriverVersion=$(sh $testDir/mocks/mock-chromedriver)
 chromedriverVersionString=$(echo "$chromedriverVersion" | cut -d ' ' -f 2)

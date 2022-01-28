@@ -10,7 +10,7 @@ npm install browser-driver-manager
 ## Usage
 
 ```terminal
-browser-driver-manager install chrome chromedriver
+npx browser-driver-manager install chrome chromedriver
 ```
 
 Managing browsers and drivers for continuous integration, especially Chrome and ChromeDriver, can be extremely difficult, if not utterly frustrating.
@@ -29,7 +29,7 @@ So instead you decided to pin to the `@latest` tag. This works great as now both
 
 This is why this package exists. It will help keep the versions of Chrome and ChromeDriver in-sync so that your continuous integration system tests don't fail due to ChromeDriver versions. 
 
-So now instead of relying on pinning, you can ask the system which version of Chrome is installed and always get the version of ChromeDriver that matches.
+So now instead of relying on pinning, you can ask the system which version of Chrome is installed and always get the version of ChromeDriver that matches. This will even work for Chrome channels that are not just Stable (i.e. Beta, Dev, and Canary).
 
 Here's an example of doing just that in an npm script.
 
@@ -41,18 +41,14 @@ Here's an example of doing just that in an npm script.
 }
 ```
 
-Here's an example of getting the installed Chrome version and installing the matching ChromeDriver version from npm.
+If you wanted to install Chrome Beta and its associated driver:
 
-```bash
-#! /bin/bash
-
-chromeVersion=$(browser-driver-manager version chrome)
-
-# Extract the version number and major number
-versionNumber="$(echo $chromeVersion | sed 's/^Google Chrome //' | sed 's/^Chromium //')"
-majorVersion="${versionNumber%%.*}"
-
-npm install --no-save "chromedriver@$majorVersion"
+```json
+{
+  "scripts": {
+    "install:chromedriver": "browser-driver-manager install chrome=beta chromedriver=beta"
+  }
+}
 ```
 
 ## Supported Platforms and Browsers
@@ -63,14 +59,14 @@ Currently there are no plans to support Windows. If you need Windows support ple
 
 ## System Requirements
 
-Using the `version` or `which` commands do not require any bash built in commands. The `install` command requires the following support:
+Using the `version` or `which` commands do not require any bash built in commands. The `install` bash command requires the following support:
 
 - `curl` or `wget` to download files
 - `dpkg` or `rpm` to extract browser applications
 - `apt` or `yum` to install browsers
-- `unzip` to install ChromeDriver
+- `unzip` to install ChromeDriver (if using the bash script directly)
 
-Additionally, `sudo` permissions are needed in order to install browsers and drivers.
+Additionally, `sudo` permissions are needed in order to install browsers.
 
 ## Commands and Options
 
