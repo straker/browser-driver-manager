@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+
+const browserDriverManaer = require('../src/browser-driver-manager.js');
+
+browserDriverManaer(process.argv.slice(2));

@@ -2,9 +2,12 @@
   "name": "browser-driver-manager",
   "version": "1.0.2",
   "description": "A cli for managing Chrome and Firefox browsers and drivers. Especially useful to keep Chrome and Chromedriver in-sync.",
-  "bin": "./src/index.js",
+  "bin": {
+    "browser-driver-manager": "./bin/browser-driver-manager"
+  },
   "files": [
-    "src/"
+    "src",
+    "bin"
   ],
   "scripts": {
     "test": "npm run test:bash && npm run test:node",
