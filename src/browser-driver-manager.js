@@ -49,15 +49,17 @@ async function browserDriverManager(userArgs) {
 
         let versionNumber;
         try {
-          versionNumber = await runBashScript({
-            returnValue: true,
-            args: scriptArgs
-          });
+          versionNumber = (
+            await runBashScript({
+              returnValue: true,
+              args: scriptArgs
+            })
+          ).trim();
         } catch (err) {
           return;
         }
 
-        version = chromedriverVersionRegex.exec(versionNumber.trim())[1];
+        version = chromedriverVersionRegex.exec(versionNumber)[1];
 
         console.log(
           `Chrome ${titleCase(channel)} version detected as ${versionNumber}`
