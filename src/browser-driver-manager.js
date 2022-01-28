@@ -32,7 +32,7 @@ async function browserDriverManager(userArgs) {
           sudo: true,
           args: scriptArgs
         });
-      } catch(err) {
+      } catch (err) {
         return;
       }
     }
@@ -53,15 +53,16 @@ async function browserDriverManager(userArgs) {
             returnValue: true,
             args: scriptArgs
           });
-        } catch(err) {
+        } catch (err) {
           return;
         }
 
         version = chromedriverVersionRegex.exec(versionNumber.trim())[1];
 
-        console.log(`Chrome ${titleCase(channel)} version detected as ${versionNumber}`);
-      }
-      else if (!isNumberRegex.test(version)) {
+        console.log(
+          `Chrome ${titleCase(channel)} version detected as ${versionNumber}`
+        );
+      } else if (!isNumberRegex.test(version)) {
         return error(chalk, `Chrome version "${version}" is not a number`);
       }
 
@@ -71,30 +72,37 @@ async function browserDriverManager(userArgs) {
       const response = await fetch('https://registry.npmjs.org/chromedriver');
       const data = await response.json();
       const chromedriverVersion = parseInt(
-        chromedriverVersionRegex.exec(
-          data['dist-tags'].latest
-        )[1]
+        chromedriverVersionRegex.exec(data['dist-tags'].latest)[1]
       );
 
-      verboseLog(chalk, verbose, `Received response of ${data['dist-tags'].latest}`);
+      verboseLog(
+        chalk,
+        verbose,
+        `Received response of ${data['dist-tags'].latest}`
+      );
 
       if (version <= chromedriverVersion) {
         await installChromeDriver(version, verbose);
         console.log(`Successfully installed ChromeDriver ${version}`);
 
         return;
-      }
-      else {
-        console.log(`ChromeDriver ${version} not found. Retrying with ChromeDriver ${version - 1}`);
+      } else {
+        console.log(
+          `ChromeDriver ${version} not found. Retrying with ChromeDriver ${
+            version - 1
+          }`
+        );
 
         if (version - 1 <= chromedriverVersion) {
           await installChromeDriver(version - 1, verbose);
           console.log(`Successfully installed ChromeDriver ${version - 1}`);
 
           return;
-        }
-        else {
-          return error(chalk, 'Unable to get ChromeDriver version; Something went wrong');
+        } else {
+          return error(
+            chalk,
+            'Unable to get ChromeDriver version; Something went wrong'
+          );
         }
       }
     }
@@ -108,13 +116,12 @@ async function browserDriverManager(userArgs) {
 
       if (userArgs[0] === 'version') {
         console.log(chromedriverPkg.version);
-      }
-      else {
+      } else {
         console.log(chromedriverPkg.path);
       }
 
       return;
-    } catch(err) {
+    } catch (err) {
       return error(chalk, 'chromedriver is not installed');
     }
   }
@@ -123,7 +130,7 @@ async function browserDriverManager(userArgs) {
     await runBashScript({
       args: userArgs
     });
-  } catch(err) {
+  } catch (err) {
     return;
   }
 }
@@ -166,22 +173,16 @@ function titleCase(str) {
  * @param {String[]} options.args - List of script arguments
  * @returns {Promise<String|null>}
  */
-function runBashScript({
-  returnValue = false,
-  sudo = false,
-  args
-} = {}) {
+function runBashScript({ returnValue = false, sudo = false, args } = {}) {
   return new Promise((resolve, reject) => {
     const lines = [];
     let lastChunk;
 
-    const params = args.slice(0);
     const scriptPath = path.join(__dirname, 'index.sh');
     let child;
     if (sudo) {
       child = spawn('sudo', [scriptPath, ...args]);
-    }
-    else {
+    } else {
       child = spawn(scriptPath, args);
     }
 
@@ -196,7 +197,6 @@ function runBashScript({
     // for some reason the install script will output curl download
     // percent through stderr
     child.stderr.on('data', chunk => {
-
       // mimic download percent bar by manually clearing lines
       // @see https://stackoverflow.com/questions/17309749/node-js-console-log-is-it-possible-to-update-a-line-rather-than-create-a-new-l
       if (chunk.indexOf('\r') !== -1) {
@@ -207,7 +207,7 @@ function runBashScript({
       }
       process.stdout.write(chunk);
 
-      lastChunk = chunk
+      lastChunk = chunk;
 
       if (chunk.toString().indexOf('browser-driver-manager error') !== -1) {
         process.exitCode = 1;
@@ -216,14 +216,12 @@ function runBashScript({
     });
     child.on('close', () => {
       if (returnValue) {
-
         // output all logs except the last one
         for (let i = 0; i < lines.length - 1; i++) {
           process.stdout.write(lines[i]);
         }
         resolve(lines[lines.length - 1].toString());
-      }
-      else {
+      } else {
         resolve();
       }
     });
@@ -236,8 +234,12 @@ function runBashScript({
  * @param {Boolean} verbose - If verbose logging is enabled
  */
 function installChromeDriver(version, verbose) {
-  return new Promise((resolve, reject) => {
-    const child = spawn('npm', ['install', '--no-save', `chromedriver@${version}`]);
+  return new Promise(resolve => {
+    const child = spawn('npm', [
+      'install',
+      '--no-save',
+      `chromedriver@${version}`
+    ]);
     if (verbose) {
       child.stdout.on('data', chunk => {
         process.stdout.write(chunk);
@@ -246,7 +248,7 @@ function installChromeDriver(version, verbose) {
     child.stderr.on('data', chunk => {
       process.stderr.write(chunk);
     });
-    child.on('close', (code) => {
+    child.on('close', () => {
       resolve();
     });
   });
