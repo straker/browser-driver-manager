@@ -38,7 +38,7 @@ async function browserDriverManager(userArgs) {
     }
 
     if (chromedriver) {
-      let version = chromedriver.split('=')[1] ?? 'stable';
+      let version = chromedriver.split('=')[1] || 'stable';
 
       if (['stable', 'beta', 'dev', 'canary'].includes(version)) {
         const channel = version;
