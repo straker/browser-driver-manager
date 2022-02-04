@@ -93,7 +93,7 @@ Additionally, `sudo` permissions are needed in order to install browsers.
     ```
 
 - **version:** 
-    Get the installed version of the browser or driver. Can also pass the specific browser channel or driver version.
+    Get the installed version of the browser or driver. Can also pass the specific browser channel.
 
     ```bash
     # Get installed Chrome version
@@ -107,7 +107,7 @@ Additionally, `sudo` permissions are needed in order to install browsers.
     ```
 
 - **which:** 
-    Get the installed location of the browser or driver. Can also pass the specific browser channel or driver version.
+    Get the installed location of the browser or driver. Can also pass the specific browser channel.
 
     ```bash
     # Get installed Chrome location
@@ -124,4 +124,4 @@ Additionally, `sudo` permissions are needed in order to install browsers.
 
 - **-h,--help:** Display the help information
 - **-v,--version:** Display the version information
-- **-verbose:** Output verbose logs
+- **--verbose:** Output verbose logs
