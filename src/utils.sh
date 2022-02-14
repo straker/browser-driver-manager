@@ -15,6 +15,11 @@ colorBlue="\033[00;34m"
 chromeLinuxChannels=("stable" "beta" "dev")
 chromeMacChannels=("stable" "beta" "dev" "canary")
 
+# Firefox supported channels
+# @see https://www.mozilla.org/en-US/firefox/channel/desktop/
+firefoxLinuxChannels=("stable" "beta" "dev" "nightly")
+firefoxMacChannels=("stable" "beta" "dev" "nightly")
+
 # Output text in the specified color
 # $1 = color
 # $2 = text
@@ -56,13 +61,24 @@ function verboseLog() {
   fi
 }
 
-# Validate that the desired channel is supported
+# Validate that the desired chrome channel is supported
 function validateChromeChannel() {
   if [ $BDM_OS == "Linux" ] && [[ ! " ${chromeLinuxChannels[*]} " =~ " ${1} " ]]; then
     error "$BDM_OS Chrome supported channels: ${chromeLinuxChannels[*]}"
     exit 1
   elif [ $BDM_OS == "MacOs" ] && [[ ! " ${chromeMacChannels[*]} " =~ " ${1} " ]]; then
     error "$BDM_OS Chrome supported channels: ${chromeMacChannels[*]}"
+    exit 1
+  fi
+}
+
+# Validate that the desired firefox channel is supported
+function validateFirefoxChannel() {
+  if [ $BDM_OS == "Linux" ] && [[ ! " ${firefoxLinuxChannels[*]} " =~ " ${1} " ]]; then
+    error "$BDM_OS Firefox supported channels: ${firefoxLinuxChannels[*]}"
+    exit 1
+  elif [ $BDM_OS == "MacOs" ] && [[ ! " ${firefoxMacChannels[*]} " =~ " ${1} " ]]; then
+    error "$BDM_OS Firefox supported channels: ${firefoxMacChannels[*]}"
     exit 1
   fi
 }

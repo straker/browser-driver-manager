@@ -162,6 +162,8 @@ if [ "$command" == "install" ]; then
       "$BDM_SRC_DIR/install/chrome.sh" "${parts[1]}"
     elif [ "${parts[0]}" == "chromedriver" ]; then
       "$BDM_SRC_DIR/install/chromedriver.sh" "${parts[1]}"
+    elif [ "${parts[0]}" == "firefox" ]; then
+    "$BDM_SRC_DIR/install/firefox.sh" "${parts[1]}"
     else
       error "${parts[0]} is not a valid browser or driver"
       exit 1
@@ -175,6 +177,8 @@ elif [ "$command" == "which" ]; then
     "$BDM_SRC_DIR/which/chrome.sh" "${parts[1]}"
   elif [ "${parts[0]}" == "chromedriver" ]; then
     "$BDM_SRC_DIR/which/chromedriver.sh" "${parts[1]}"
+  elif [ "${parts[0]}" == "firefox" ]; then
+    "$BDM_SRC_DIR/which/firefox.sh" "${parts[1]}"
   else
     error "${parts[0]} is not a valid browser or driver"
     exit 1
@@ -187,6 +191,8 @@ elif [ "$command" == "version" ]; then
     "$BDM_SRC_DIR/version/chrome.sh" "${parts[1]}"
   elif [ "${parts[0]}" == "chromedriver" ]; then
     "$BDM_SRC_DIR/version/chromedriver.sh" "${parts[1]}"
+  elif [ "${parts[0]}" == "firefox" ]; then
+    "$BDM_SRC_DIR/version/firefox.sh" "${parts[1]}"
   else
     error "${parts[0]} is not a valid browser or driver"
     exit 1
