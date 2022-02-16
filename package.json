@@ -5,6 +5,9 @@
   "bin": {
     "browser-driver-manager": "./bin/browser-driver-manager"
   },
+  "engines": {
+    "node": ">=14"
+  },
   "files": [
     "src",
     "bin",
