@@ -49,5 +49,11 @@
   },
   "lint-staged": {
     "*.js": "prettier --write"
-  }
+  },
+  "keywords": [
+    "chromedriver",
+    "chrome",
+    "browser",
+    "firefox"
+  ]
 }
