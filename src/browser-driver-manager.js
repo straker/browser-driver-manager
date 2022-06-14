@@ -101,7 +101,7 @@ async function browserDriverManager(userArgs) {
             console.log(`Successfully installed ChromeDriver ${version - 1}`);
           } catch (error) {
             console.log('Failed to install ChromeDriver');
-            coneole.log('Please check error at: https://stackoverflow.com/search?q=[js]+', error.message.replace(' ', '+'));
+            console.log('Please check error at: https://stackoverflow.com/search?q=[js]+', error.message.replace(' ', '+'));
             process.exit = 1
           }
           return;
