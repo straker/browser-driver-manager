@@ -96,9 +96,14 @@ async function browserDriverManager(userArgs) {
         );
 
         if (version - 1 <= chromedriverVersion) {
-          await installChromeDriver(version - 1, verbose);
-          console.log(`Successfully installed ChromeDriver ${version - 1}`);
-
+          try {
+            await installChromeDriver(version - 1, verbose);
+            console.log(`Successfully installed ChromeDriver ${version - 1}`);
+          } catch (error) {
+            console.log('Failed to install ChromeDriver');
+            console.log('Please check error at: https://stackoverflow.com/search?q=[js]+', error.message.replace(' ', '+'));
+            process.exit = 1
+          }
           return;
         } else {
           return error(
