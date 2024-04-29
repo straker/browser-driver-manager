@@ -1,259 +1,124 @@
-const spawn = require('child_process').spawn;
+#!/usr/bin/env node
+const fsPromises = require('fs').promises;
+const fs = require('fs');
+const os = require('os');
 const path = require('path');
+const {
+  install,
+  resolveBuildId,
+  detectBrowserPlatform,
+  Browser
+} = require('@puppeteer/browsers');
 
-const isNumberRegex = /\d/;
-const chromedriverVersionRegex = /(\d+)/;
-const chromeRegex = /^chrome$|^chrome=/;
-const chromedriverRegex = /^chromedriver$|^chromedriver=/;
+const HOME_DIR = os.homedir();
+const BDM_CACHE_DIR = path.resolve(HOME_DIR, '.browser-driver-manager');
 
-/**
- * Node wrapper around the bash script (export for testing);
- */
-async function browserDriverManager(userArgs) {
-  // dynamic import es6 npm packages
-  const fetch = (await import('node-fetch')).default;
-  const chalk = (await import('chalk')).default;
+async function installBrowser(cacheDir, browser, version) {
+  const platform = detectBrowserPlatform();
+  const buildId = await resolveBuildId(browser, platform, version);
+  const installedBrowser = await install({
+    cacheDir,
+    browser,
+    buildId
+  });
 
-  const verbose = userArgs.includes('--verbose');
+  return installedBrowser;
+}
 
-  const chrome = userArgs.find(arg => chromeRegex.test(arg));
-  const chromedriver = userArgs.find(arg => chromedriverRegex.test(arg));
-
-  // install npm chromedriver instead of regular bash script install
-  if (userArgs[0] == 'install') {
-    if (chrome) {
-      const scriptArgs = ['install', chrome];
-      if (verbose) {
-        scriptArgs.push('--verbose');
-      }
-
-      try {
-        await runBashScript({
-          sudo: true,
-          args: scriptArgs
-        });
-      } catch (err) {
-        return;
-      }
-    }
-
-    if (chromedriver) {
-      let version = chromedriver.split('=')[1] || 'stable';
-
-      if (['stable', 'beta', 'dev', 'canary'].includes(version)) {
-        const channel = version;
-        const scriptArgs = ['version', `chrome=${channel}`];
-        if (verbose) {
-          scriptArgs.push('--verbose');
-        }
-
-        let versionNumber;
-        try {
-          versionNumber = (
-            await runBashScript({
-              returnValue: true,
-              args: scriptArgs
-            })
-          ).trim();
-        } catch (err) {
-          return;
-        }
-
-        version = chromedriverVersionRegex.exec(versionNumber)[1];
-
-        console.log(
-          `Chrome ${titleCase(channel)} version detected as ${versionNumber}`
-        );
-      } else if (!isNumberRegex.test(version)) {
-        return error(chalk, `Chrome version "${version}" is not a number`);
-      }
-
-      version = parseInt(version, 10);
-      console.log(`Installing ChromeDriver ${version}`);
-
-      const response = await fetch('https://registry.npmjs.org/chromedriver');
-      const data = await response.json();
-      const chromedriverVersion = parseInt(
-        chromedriverVersionRegex.exec(data['dist-tags'].latest)[1]
-      );
-
-      verboseLog(
-        chalk,
-        verbose,
-        `Received response of ${data['dist-tags'].latest}`
-      );
-
-      if (version <= chromedriverVersion) {
-        await installChromeDriver(version, verbose);
-        console.log(`Successfully installed ChromeDriver ${version}`);
-
-        return;
-      } else {
-        console.log(
-          `ChromeDriver ${version} not found. Retrying with ChromeDriver ${
-            version - 1
-          }`
-        );
-
-        if (version - 1 <= chromedriverVersion) {
-          await installChromeDriver(version - 1, verbose);
-          console.log(`Successfully installed ChromeDriver ${version - 1}`);
-
-          return;
-        } else {
-          return error(
-            chalk,
-            'Unable to get ChromeDriver version; Something went wrong'
-          );
-        }
-      }
-    }
-
-    return;
-  }
-  // output version installed from npm
-  else if (['version', 'which'].includes(userArgs[0]) && chromedriver) {
-    try {
-      const chromedriverPkg = require('chromedriver');
-
-      if (userArgs[0] === 'version') {
-        console.log(chromedriverPkg.version);
-      } else {
-        console.log(chromedriverPkg.path);
-      }
-
-      return;
-    } catch (err) {
-      return error(chalk, 'chromedriver is not installed');
-    }
-  }
+async function setEnv({ chromePath, chromedriverPath }) {
+  console.log('Setting env CHROME/CHROMEDRIVER_TEST_PATH');
 
   try {
-    await runBashScript({
-      args: userArgs
-    });
-  } catch (err) {
+    await fsPromises.writeFile(
+      path.resolve(BDM_CACHE_DIR, '.env'),
+      `CHROME_TEST_PATH="${chromePath}"\nCHROMEDRIVER_TEST_PATH="${chromedriverPath}"`
+    );
+    console.log(
+      'CHROME_TEST_PATH is set in ',
+      chromePath,
+      '\nCHROMEDRIVER_TEST_PATH is set in ',
+      chromedriverPath
+    );
+  } catch (e) {
+    console.error('Error setting CHROME/CHROMEDRIVER_TEST_PATH', e);
+  }
+}
+
+function getEnv() {
+  const envPath = path.resolve(BDM_CACHE_DIR, '.env');
+  if (!fs.existsSync(envPath)) {
+    return null;
+  }
+  const env = fs.readFileSync(envPath, 'utf8');
+  return env;
+}
+
+async function browserDriverManager(args) {
+  if (args[0]?.trim() === 'which') {
+    const env = getEnv();
+    console.log(env);
     return;
   }
-}
 
-/**
- * Output an error message
- * @param {Object} chalk
- * @param {String} msg - Message to display
- */
-async function error(chalk, msg) {
-  console.error(chalk.red('browser-driver-manager error:'), msg);
-  process.exitCode = 1;
-}
+  if (args[0]?.trim() === 'version') {
+    const pattern = /-(\d+\.\d+\.\d+\.\d+)/;
+    const filePath = getEnv();
+    // Search for the pattern in the file path
+    const match = filePath?.match(pattern);
 
-/**
- * Output a message for verbose logging
- * @param {Object} chalk
- * @param {Boolean} verbose - If verbose logging is enabled
- * @param {String} msg - Message to display
- */
-async function verboseLog(chalk, verbose, msg) {
-  if (verbose) {
-    console.log(chalk.blue('log:'), msg);
-  }
-}
-
-/**
- * Uppercase first character of a string
- * @param {String} str - String to Titlecase
- */
-function titleCase(str) {
-  return str.charAt(0).toUpperCase() + str.substr(1);
-}
-
-/**
- * Run the main bash script
- * @param {Object} options
- * @param {Boolean} [options.returnValue] - Return the bash script output rather than display it
- * @param {Boolean} [options.sudo] - Run the command as sudo
- * @param {String[]} options.args - List of script arguments
- * @returns {Promise<String|null>}
- */
-function runBashScript({ returnValue = false, sudo = false, args } = {}) {
-  return new Promise((resolve, reject) => {
-    const lines = [];
-    let lastChunk;
-
-    const scriptPath = path.join(__dirname, 'index.sh');
-    let child;
-    if (sudo) {
-      child = spawn('sudo', [scriptPath, ...args]);
+    if (match) {
+      const version = match[1];
+      console.log('Version:', version);
     } else {
-      child = spawn(scriptPath, args);
+      console.log('Version not found in the file path.');
     }
+    return;
+  }
 
-    child.stdout.on('data', chunk => {
-      lines.push(chunk);
+  if (!args[0]) {
+    throw new Error(
+      'Please specify browser and version in browser@version format'
+    );
+  }
 
-      if (!returnValue) {
-        process.stdout.write(chunk);
-      }
+  // When parsing the values the version value could be set
+  // as a version number (e.g. 116.0.5845.96) or a channel (e.g. beta, dev, canary)
+  const [browser, version = 'latest'] = args[0].split('@');
+
+  // Create a cache directory if it does not exist on the user's home directory
+  // This will be where environment variables will be stored for the tests
+  // since it is a consistent location across different platforms
+  console.log(`BDM_CACHE_DIR: ${BDM_CACHE_DIR}`);
+  if (!fs.existsSync(BDM_CACHE_DIR)) {
+    await fsPromises.mkdir(BDM_CACHE_DIR, { recursive: true });
+  }
+
+  if (browser.includes('chrome')) {
+    const platform = detectBrowserPlatform();
+    // This will sync the browser and chromedriver versions
+    const chromeBuildId = await resolveBuildId(
+      Browser.CHROME,
+      platform,
+      version
+    );
+
+    const installChrome = await installBrowser(
+      BDM_CACHE_DIR,
+      Browser.CHROME,
+      chromeBuildId
+    );
+
+    const installChromedriver = await installBrowser(
+      BDM_CACHE_DIR,
+      Browser.CHROMEDRIVER,
+      chromeBuildId
+    );
+
+    await setEnv({
+      chromePath: installChrome.executablePath,
+      chromedriverPath: installChromedriver.executablePath
     });
-
-    // for some reason the install script will output curl download
-    // percent through stderr
-    child.stderr.on('data', chunk => {
-      // mimic download percent bar by manually clearing lines
-      // @see https://stackoverflow.com/questions/17309749/node-js-console-log-is-it-possible-to-update-a-line-rather-than-create-a-new-l
-      if (chunk.indexOf('\r') !== -1) {
-        process.stdout.clearLine();
-      }
-      if (lastChunk) {
-        process.stdout.cursorTo(lastChunk.length - 1);
-      }
-      process.stdout.write(chunk);
-
-      lastChunk = chunk;
-
-      if (chunk.toString().indexOf('browser-driver-manager error') !== -1) {
-        process.exitCode = 1;
-        reject();
-      }
-    });
-    child.on('close', () => {
-      if (returnValue) {
-        // output all logs except the last one
-        for (let i = 0; i < lines.length - 1; i++) {
-          process.stdout.write(lines[i]);
-        }
-        resolve(lines[lines.length - 1].toString());
-      } else {
-        resolve();
-      }
-    });
-  });
-}
-
-/**
- * Install ChromeDriver from npm
- * @param {String} version - Version to install
- * @param {Boolean} verbose - If verbose logging is enabled
- */
-function installChromeDriver(version, verbose) {
-  return new Promise(resolve => {
-    const child = spawn('npm', [
-      'install',
-      '--no-save',
-      `chromedriver@${version}`
-    ]);
-    if (verbose) {
-      child.stdout.on('data', chunk => {
-        process.stdout.write(chunk);
-      });
-    }
-    child.stderr.on('data', chunk => {
-      process.stderr.write(chunk);
-    });
-    child.on('close', () => {
-      resolve();
-    });
-  });
+  }
 }
 
 module.exports = browserDriverManager;
