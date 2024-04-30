@@ -10,7 +10,7 @@ npm install browser-driver-manager
 ## Usage
 
 ```terminal
-npx browser-driver-manager install chrome chromedriver
+npx browser-driver-manager chrome
 ```
 
 Managing browsers and drivers for continuous integration, especially Chrome and ChromeDriver, can be extremely difficult, if not utterly frustrating.
@@ -36,7 +36,7 @@ Here's an example of doing just that in an npm script.
 ```json
 {
   "scripts": {
-    "install:chromedriver": "browser-driver-manager install chromedriver"
+    "install:chrome": "browser-driver-manager chrome"
   }
 }
 ```
@@ -46,82 +46,53 @@ If you wanted to install Chrome Beta and its associated driver:
 ```json
 {
   "scripts": {
-    "install:chromedriver": "browser-driver-manager install chrome=beta chromedriver=beta"
+    "install:chromedriver": "browser-driver-manager chrome@beta"
   }
 }
 ```
 
 ## Supported Platforms and Browsers
 
-Currently only MacOS and Linux platforms, and Chrome browser and drivers are supported. Firefox support is planned. 
-
-Currently there are no plans to support Windows. If you need Windows support please reach out, but understand that adding Windows support is a paid feature request.
+MacOS, Linux, and Windows platforms, and Chrome browser and drivers are supported. Firefox support is planned. 
 
 ## System Requirements
 
-Using the `version` or `which` commands do not require any bash built in commands. The `install` bash command requires the following support:
+Node is required to run commands.
 
-- `curl` or `wget` to download files
-- `dpkg` or `rpm` to extract browser applications
-- `apt` or `yum` to install browsers
-- `unzip` to install ChromeDriver (if using the bash script directly)
+Install dependencies with
 
-Additionally, `sudo` permissions are needed in order to install browsers.
+`npm install`
 
 ## Commands and Options
 
 ### Commands
 
-- **install:** 
-    Install one or multiple browsers or drivers Can also pass the specific browser channel or driver version for each browser or driver. The latest Stable channel is used if no channel is passed. When installing ChromeDriver without passing a channel or version, the ChromeDriver version that matches the installed Stable version of Chrome is used.
+- **chrome:** 
+    Install the browser and driver. Can also pass the specific browser channel or version for each browser and driver. The latest Stable channel is used if no channel is passed.
 
     ```bash
-    # Install latest Chrome Stable
-    browser-driver-manager install chrome
+    # Install latest Chrome Stable and matching Chromedriver version
+    browser-driver-manager chrome
 
-    # Install ChromeDriver version that matches install Chrome Stable
-    browser-driver-manager install chromedriver    
-
-    # Install latest Chrome Beta
-    browser-driver-manager install chrome=beta
-
-    # Install ChromeDriver version 97
-    browser-driver-manager install chromedriver=97
-
-    # Install both Chrome and ChromeDriver Beta
-    browser-driver-manager install chrome=beta chromedriver=beta
-    ```
+    # Install latest Chrome Beta and matching Chromedriver
+    browser-driver-manager chrome@beta
 
 - **version:** 
-    Get the installed version of the browser or driver. Can also pass the specific browser channel.
+    Get the installed version of the browser or driver.
 
     ```bash
-    # Get installed Chrome version
-    browser-driver-manager version chrome
-
-    # Get installed Chrome Beta version
-    browser-driver-manager version chrome=beta
-
-    # Get ChromeDriver version
-    browser-driver-manager version chromedriver
-    ```
+    # Get installed Chrome and Chromedriver versions
+    browser-driver-manager version
 
 - **which:** 
-    Get the installed location of the browser or driver. Can also pass the specific browser channel.
+    Get the installed location of the browser and driver.
 
     ```bash
-    # Get installed Chrome location
-    browser-driver-manager which chrome
-
-    # Get installed Chrome Beta location
-    browser-driver-manager which chrome=beta
-
-    # Get ChromeDriver location
-    browser-driver-manager which chromedriver
+    # Get installed Chrome and Chromedriver locations
+    browser-driver-manager which
     ```
 
 ### Options
 
 - **-h,--help:** Display the help information
 - **-v,--version:** Display the version information
-- **--verbose:** Output verbose logs
