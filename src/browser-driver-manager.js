@@ -17,6 +17,9 @@ const BDM_CACHE_DIR = path.resolve(HOME_DIR, '.browser-driver-manager');
 
 const program = new Command();
 
+program.command('which').action(which);
+program.command('version').action(version);
+
 program.option('--verbose');
 
 program.parse();
@@ -88,28 +91,28 @@ function getEnv() {
   return env;
 }
 
+function which() {
+  const env = getEnv();
+  console.log(env);
+  return;
+}
+
+function version() {
+  const pattern = /-(\d+\.\d+\.\d+\.\d+)/;
+  const filePath = getEnv();
+  // Search for the pattern in the file path
+  const match = filePath?.match(pattern);
+
+  if (match) {
+    const version = match[1];
+    console.log('Version:', version);
+  } else {
+    console.log('Version not found in the file path.');
+  }
+  return;
+}
+
 async function browserDriverManager(args) {
-  if (args[0]?.trim() === 'which') {
-    const env = getEnv();
-    console.log(env);
-    return;
-  }
-
-  if (args[0]?.trim() === 'version') {
-    const pattern = /-(\d+\.\d+\.\d+\.\d+)/;
-    const filePath = getEnv();
-    // Search for the pattern in the file path
-    const match = filePath?.match(pattern);
-
-    if (match) {
-      const version = match[1];
-      console.log('Version:', version);
-    } else {
-      console.log('Version not found in the file path.');
-    }
-    return;
-  }
-
   if (!args[0]) {
     throw new Error(
       'Please specify browser and version in browser@version format'
