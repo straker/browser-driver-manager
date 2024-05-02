@@ -3,23 +3,58 @@ const fsPromises = require('fs').promises;
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const readline = require('readline');
 const {
   install,
   resolveBuildId,
   detectBrowserPlatform,
   Browser
 } = require('@puppeteer/browsers');
+const { Command } = require('commander');
 
 const HOME_DIR = os.homedir();
 const BDM_CACHE_DIR = path.resolve(HOME_DIR, '.browser-driver-manager');
 
+const program = new Command();
+
+program.option('--verbose');
+
+program.parse();
+
+const options = program.opts();
+
 async function installBrowser(cacheDir, browser, version) {
+  let cursorEnabled = true;
+
+  const downloadProgressCallback = (downloadedBytes, totalBytes) => {
+    if (!options.verbose) {
+      return;
+    }
+    let progressMessage = `Downloading ${browser[0].toUpperCase()}${browser.slice(
+      1
+    )}: `;
+    if (downloadedBytes < totalBytes) {
+      if (cursorEnabled) {
+        // \x1B[?25l disables the cursor
+        progressMessage = `\x1B[?25l${progressMessage}`;
+        cursorEnabled = false;
+      }
+      progressMessage += `${Math.ceil((downloadedBytes * 100) / totalBytes)}%`;
+    } else {
+      // \x1B[?25h enables the cursor
+      progressMessage += `Done!\n\x1B[?25h`;
+      cursorEnabled = true;
+    }
+    readline.cursorTo(process.stdout, 0);
+    process.stdout.write(progressMessage);
+  };
   const platform = detectBrowserPlatform();
   const buildId = await resolveBuildId(browser, platform, version);
   const installedBrowser = await install({
     cacheDir,
     browser,
-    buildId
+    buildId,
+    downloadProgressCallback
   });
 
   return installedBrowser;
@@ -88,13 +123,16 @@ async function browserDriverManager(args) {
   // Create a cache directory if it does not exist on the user's home directory
   // This will be where environment variables will be stored for the tests
   // since it is a consistent location across different platforms
-  console.log(`BDM_CACHE_DIR: ${BDM_CACHE_DIR}`);
   if (!fs.existsSync(BDM_CACHE_DIR)) {
     await fsPromises.mkdir(BDM_CACHE_DIR, { recursive: true });
   }
 
   if (browser.includes('chrome')) {
     const platform = detectBrowserPlatform();
+
+    if (!platform) {
+      throw new Error('Unable to detect browser platform');
+    }
     // This will sync the browser and chromedriver versions
     const chromeBuildId = await resolveBuildId(
       Browser.CHROME,
