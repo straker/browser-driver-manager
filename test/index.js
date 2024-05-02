@@ -36,8 +36,6 @@ const envContents = `CHROME_TEST_PATH="${chromeTestPath}"\nCHROMEDRIVER_TEST_PAT
 const mockResolveBuildId = sinon.stub().returns(buildId);
 const mockDetectBrowserPlatform = sinon.stub().returns('mac');
 const mockInstall = sinon.stub();
-const mockExistsSync = sinon.stub();
-const mockReadFileSync = sinon.stub();
 
 const browserDriverManager = proxyquire('../src/browser-driver-manager', {
   '@puppeteer/browsers': {
@@ -60,6 +58,8 @@ beforeEach(() => {
 
   console.log = mockConsoleLog;
   console.error = mockConsoleError;
+
+  mockDetectBrowserPlatform.returns('mac');
 });
 
 afterEach(() => {
@@ -69,6 +69,7 @@ afterEach(() => {
   console.error = originalConsoleError;
 
   mockConsoleLog.resetHistory();
+  mockConsoleError.resetHistory();
 
   mockResolveBuildId.resetHistory();
   mockDetectBrowserPlatform.resetHistory();
@@ -110,14 +111,14 @@ describe('browser-driver-manager', () => {
 
       sinon.assert.calledWith(mockConsoleLog, 'Version:', version);
     });
-    it('should log "not found" when the path doesn\'t exist', async () => {
+    it("should error when the path doesn't exist", async () => {
       const notFoundMessage = 'Version not found in the file path.';
       console.log = mockConsoleLog;
       await browserDriverManager(args);
 
       sinon.assert.calledWith(mockConsoleLog, notFoundMessage);
     });
-    it('should log not found when version is not found', async () => {
+    it('should error when version is not found', async () => {
       const notFoundMessage = 'Version not found in the file path.';
       makeEnvFile('bad env file format');
       await browserDriverManager(args);
@@ -138,6 +139,17 @@ describe('browser-driver-manager', () => {
       await browserDriverManager(args);
 
       sinon.assert.called(mockDetectBrowserPlatform);
+    });
+
+    it("should throw if the platform couldn't be detected", async () => {
+      mockDetectBrowserPlatform.returns(undefined);
+      const args = ['chrome'];
+      try {
+        await browserDriverManager(args);
+        expect.fail();
+      } catch (e) {
+        expect(e.message).to.equal('Unable to detect browser platform');
+      }
     });
 
     it('should call resolveBuildId with the correct arguments when no version is given', async () => {
