@@ -90,11 +90,12 @@ async function setEnv({ chromePath, chromedriverPath }) {
 
 function getEnv() {
   const envPath = path.resolve(BDM_CACHE_DIR, '.env');
-  if (!fs.existsSync(envPath)) {
+  try {
+    const env = fs.readFileSync(envPath, 'utf8');
+    return env;
+  } catch {
     return null;
   }
-  const env = fs.readFileSync(envPath, 'utf8');
-  return env;
 }
 
 function which() {
