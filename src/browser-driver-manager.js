@@ -63,38 +63,27 @@ async function setEnv({ chromePath, chromedriverPath, version }) {
 
 async function getEnv() {
   const envPath = path.resolve(BDM_CACHE_DIR, '.env');
-  const env = await fs.readFile(envPath, 'utf8');
-  return env;
+  try {
+    const env = await fs.readFile(envPath, 'utf8');
+    return env;
+  } catch (e) {
+    throw new Error('No environment file exists. Please install first');
+  }
 }
 
 async function which() {
-  try {
-    const env = await getEnv();
-    console.log(env);
-  } catch {
-    console.error('No environment file exists');
-  }
+  const env = await getEnv();
+  console.log(env);
 }
 
 async function version() {
   const pattern = /^VERSION="([\d.]+)"$/m;
-  let env;
-  try {
-    env = await getEnv();
-  } catch {
-    console.error('No environment file exists');
-    return;
-  }
+  const env = await getEnv();
   // Search for the pattern in the file path
   const match = env.match(pattern);
 
-  if (match) {
-    const version = match[1];
-    console.log('Version:', version);
-  } else {
-    console.log('Version not found in the file path.');
-  }
-  return;
+  const version = match[1];
+  console.log('Version:', version);
 }
 
 async function install(browserId, options) {
@@ -111,8 +100,13 @@ async function install(browserId, options) {
     console.log(`${BDM_CACHE_DIR} already exists`);
   }
 
+  // Should support for other browsers be added, commander should handle this check.
+  // With only one supported browser, this error message is more meaningful than commander's.
   if (!browser.includes('chrome')) {
-    throw new Error(`The browser ${browser} is not supported`);
+    console.error(
+      `The browser ${browser} is not supported. Currently, only "chrome" is supported.`
+    );
+    return;
   }
 
   const platform = detectBrowserPlatform();

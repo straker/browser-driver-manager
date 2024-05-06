@@ -13,7 +13,6 @@ const mockProcessStdoutWrite = sinon.stub();
 const mockConsoleLog = sinon.stub();
 const mockConsoleError = sinon.stub();
 
-const mockBuildId = '90810624976';
 const mockVersion = '126.0.6442.0';
 const MOCK_HOME_DIR = './mock-user-home-dir';
 const MOCK_BDM_CACHE_DIR = path.resolve(
@@ -25,7 +24,7 @@ const chromeTestPath = `${MOCK_BDM_CACHE_DIR}/chrome/os_arch-${mockVersion}/chro
 const chromedriverTestPath = `${MOCK_BDM_CACHE_DIR}/chromedriver/os_arch-${mockVersion}/chromedriver`;
 const envContents = `CHROME_TEST_PATH="${chromeTestPath}"${os.EOL}CHROMEDRIVER_TEST_PATH="${chromedriverTestPath}"${os.EOL}VERSION="${mockVersion}"`;
 
-const mockResolveBuildId = sinon.stub().returns(mockBuildId);
+const mockResolveBuildId = sinon.stub().returns(mockVersion);
 const mockDetectBrowserPlatform = sinon.stub().returns('mac');
 const mockInstall = sinon.stub().returns({ executablePath: 'foo/bar' });
 const mockBrowser = {
@@ -92,10 +91,15 @@ describe('browser-driver-manager', () => {
 
       sinon.assert.calledWith(mockConsoleLog, envContents);
     });
-    it('should log an error if no environment file exists', async () => {
-      await which();
-
-      sinon.assert.calledWith(mockConsoleError, 'No environment file exists');
+    it('should throw if no environment file exists', async () => {
+      try {
+        await which();
+        throw new Error('should have thrown');
+      } catch (e) {
+        expect(e.message).to.contain(
+          'No environment file exists. Please install first'
+        );
+      }
     });
   });
   describe('version', () => {
@@ -105,35 +109,26 @@ describe('browser-driver-manager', () => {
 
       sinon.assert.calledWith(mockConsoleLog, 'Version:', mockVersion);
     });
-    it("should log an error when the environment file doesn't exist", async () => {
-      await version();
-
-      sinon.assert.calledWith(mockConsoleError, 'No environment file exists');
-    });
-    it('should error when version is not found', async () => {
-      const notFoundMessage = 'Version not found in the file path.';
-      await makeEnvFile('bad env file format');
-      await version();
-
-      sinon.assert.calledWith(mockConsoleLog, notFoundMessage);
+    it("should error when the environment file doesn't exist", async () => {
+      try {
+        await version();
+        throw new Error('should have thrown');
+      } catch (e) {
+        expect(e.message).to.contain(
+          'No environment file exists. Please install first'
+        );
+      }
     });
   });
   describe('install', () => {
     it('should throw if an unsupported browser is given', async () => {
-      try {
-        await install('firefox');
-        throw new Error('should have thrown');
-      } catch (e) {
-        expect(e.message).to.contain('The browser firefox is not supported');
-      }
+      await install('firefox');
+      sinon.assert.calledWith(
+        mockConsoleError,
+        'The browser firefox is not supported. Currently, only "chrome" is supported.'
+      );
     });
     it("should create the cache directory if it doesn't already exist", async () => {
-      try {
-        await fs.access(MOCK_BDM_CACHE_DIR);
-        throw new Error('should have thrown');
-      } catch (e) {
-        expect(e.message).to.contain('no such file or directory');
-      }
       await install(browser);
       expect(await fs.access(MOCK_BDM_CACHE_DIR)).not.to.throw;
     });
@@ -173,7 +168,7 @@ describe('browser-driver-manager', () => {
         mockInstall,
         sinon.match({
           browser: 'chrome',
-          buildId: mockBuildId,
+          buildId: mockVersion,
           downloadProgressCallback: sinon.match.func
         })
       );
@@ -186,7 +181,7 @@ describe('browser-driver-manager', () => {
         mockInstall,
         sinon.match({
           browser: 'chromedriver',
-          buildId: mockBuildId,
+          buildId: mockVersion,
           downloadProgressCallback: sinon.match.func
         })
       );
