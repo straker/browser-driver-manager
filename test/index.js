@@ -2,7 +2,8 @@ const sinon = require('sinon');
 const proxyquire = require('proxyquire').noCallThru();
 const expect = require('chai').expect;
 const path = require('path');
-const fs = require('fs');
+const fs = require('fs').promises;
+const os = require('os');
 
 const originalProcessStdoutWrite = process.stdout.write;
 const originalConsoleLog = console.log;
@@ -22,7 +23,7 @@ const MOCK_BDM_CACHE_DIR = path.resolve(
 const envPath = path.resolve(MOCK_BDM_CACHE_DIR, '.env');
 const chromeTestPath = `${MOCK_BDM_CACHE_DIR}/chrome/os_arch-${mockVersion}/chrome`;
 const chromedriverTestPath = `${MOCK_BDM_CACHE_DIR}/chromedriver/os_arch-${mockVersion}/chromedriver`;
-const envContents = `CHROME_TEST_PATH="${chromeTestPath}"\nCHROMEDRIVER_TEST_PATH="${chromedriverTestPath}"`;
+const envContents = `CHROME_TEST_PATH="${chromeTestPath}"${os.EOL}CHROMEDRIVER_TEST_PATH="${chromedriverTestPath}"${os.EOL}VERSION="${mockVersion}"`;
 
 const mockResolveBuildId = sinon.stub().returns(mockBuildId);
 const mockDetectBrowserPlatform = sinon.stub().returns('mac');
@@ -50,13 +51,19 @@ const { install, version, which } = proxyquire(
   }
 );
 
-beforeEach(() => {
+beforeEach(async () => {
   console.log = mockConsoleLog;
   console.error = mockConsoleError;
 
   mockDetectBrowserPlatform.returns('mac');
 
   browser = 'chrome';
+
+  try {
+    await fs.rm(MOCK_HOME_DIR, { recursive: true });
+  } catch (e) {
+    console.log(e);
+  }
 });
 
 afterEach(() => {
@@ -70,57 +77,59 @@ afterEach(() => {
   mockResolveBuildId.resetHistory();
   mockDetectBrowserPlatform.resetHistory();
   mockInstall.resetHistory();
-
-  if (fs.existsSync(MOCK_HOME_DIR)) {
-    fs.rmSync(MOCK_HOME_DIR, { recursive: true });
-  }
 });
 
-const makeEnvFile = (contents = envContents) => {
-  fs.mkdirSync(MOCK_BDM_CACHE_DIR, { recursive: true });
-  fs.writeFileSync(envPath, contents);
+const makeEnvFile = async (contents = envContents) => {
+  await fs.mkdir(MOCK_BDM_CACHE_DIR, { recursive: true });
+  await fs.writeFile(envPath, contents);
 };
 
 describe('browser-driver-manager', () => {
   describe('which', () => {
-    it('should log the locations of chrome and chromedriver if they exist', () => {
-      makeEnvFile();
-      which();
+    it('should log the locations of chrome and chromedriver if they exist', async () => {
+      await makeEnvFile();
+      await which();
 
       sinon.assert.calledWith(mockConsoleLog, envContents);
     });
-    it("shouldn't log if no environment path dir exists", () => {
-      which();
+    it("shouldn't log if no environment path dir exists", async () => {
+      await which();
 
       sinon.assert.calledWith(mockConsoleLog, null);
     });
   });
   describe('version', () => {
-    it('should log the version when a valid one exists', () => {
-      makeEnvFile();
-      version();
+    it('should log the version when a valid one exists', async () => {
+      await makeEnvFile();
+      await version();
 
       sinon.assert.calledWith(mockConsoleLog, 'Version:', mockVersion);
     });
-    it("should error when the path doesn't exist", () => {
+    it("should error when the path doesn't exist", async () => {
       const notFoundMessage = 'Version not found in the file path.';
-      version();
+      await version();
 
       sinon.assert.calledWith(mockConsoleLog, notFoundMessage);
     });
-    it('should error when version is not found', () => {
+    it('should error when version is not found', async () => {
       const notFoundMessage = 'Version not found in the file path.';
-      makeEnvFile('bad env file format');
-      version();
+      await makeEnvFile('bad env file format');
+      await version();
 
       sinon.assert.calledWith(mockConsoleLog, notFoundMessage);
     });
   });
   describe('install', () => {
     it("should create the cache directory if it doesn't already exist", async () => {
-      expect(fs.existsSync(MOCK_BDM_CACHE_DIR)).to.be.false;
+      console.log = originalConsoleLog;
+      try {
+        await fs.access(MOCK_BDM_CACHE_DIR);
+        throw new Error('should have thrown');
+      } catch (e) {
+        expect(e.message).to.contain('no such file or directory');
+      }
       await install(browser);
-      expect(fs.existsSync(MOCK_BDM_CACHE_DIR)).to.be.true;
+      expect(await fs.access(MOCK_BDM_CACHE_DIR)).not.to.throw;
     });
 
     it('should call detectBrowserPlatform', async () => {
@@ -202,23 +211,21 @@ describe('browser-driver-manager', () => {
 
       sinon.assert.calledWith(
         mockConsoleLog,
-        'Setting env CHROME/CHROMEDRIVER_TEST_PATH'
+        'Setting env CHROME/CHROMEDRIVER_TEST_PATH/VERSION'
       );
-
-      expect(fs.readFileSync(envPath, 'utf-8').match(chromeTestPath)).to.not.be
-        .null;
-      expect(fs.readFileSync(envPath, 'utf-8').match(chromedriverTestPath)).to
-        .not.be.null;
+      const env = await fs.readFile(envPath, 'utf-8');
+      expect(env.match(chromeTestPath)).to.not.be.null;
+      expect(env.match(chromedriverTestPath)).to.not.be.null;
     });
 
     it('should log an error if unable to write the file', async () => {
-      sinon.stub(fs.promises, 'writeFile').rejects('unable to write file');
+      sinon.stub(fs, 'writeFile').rejects('unable to write file');
 
       await install(browser);
 
       sinon.assert.calledWith(
         mockConsoleError,
-        'Error setting CHROME/CHROMEDRIVER_TEST_PATH'
+        'Error setting CHROME/CHROMEDRIVER_TEST_PATH/VERSION'
       );
     });
     describe('does not show download progress when', () => {

@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-const fsPromises = require('fs').promises;
-const fs = require('fs');
+const fs = require('fs').promises;
 const os = require('os');
 const path = require('path');
 const readline = require('readline');
@@ -28,7 +27,7 @@ async function installBrowser(cacheDir, browser, version, options) {
       cursorEnabled = false;
       progressMessage += `${Math.ceil((downloadedBytes * 100) / totalBytes)}%`;
     } else {
-      const cursorEnablingString = '\n\x1B[?25h';
+      const cursorEnablingString = '\r\n\x1B[?25h';
       progressMessage += `Done!${cursorEnablingString}`;
       cursorEnabled = true;
     }
@@ -46,44 +45,41 @@ async function installBrowser(cacheDir, browser, version, options) {
   return installedBrowser;
 }
 
-async function setEnv({ chromePath, chromedriverPath }) {
-  console.log('Setting env CHROME/CHROMEDRIVER_TEST_PATH');
+async function setEnv({ chromePath, chromedriverPath, version }) {
+  console.log('Setting env CHROME/CHROMEDRIVER_TEST_PATH/VERSION');
 
   try {
-    await fsPromises.writeFile(
+    await fs.writeFile(
       path.resolve(BDM_CACHE_DIR, '.env'),
-      `CHROME_TEST_PATH="${chromePath}"\nCHROMEDRIVER_TEST_PATH="${chromedriverPath}"`
+      `CHROME_TEST_PATH="${chromePath}"${os.EOL}CHROMEDRIVER_TEST_PATH="${chromedriverPath}"${os.EOL}VERSION="${version}"${os.EOL}`
     );
-    console.log(
-      'CHROME_TEST_PATH is set in',
-      chromePath,
-      '\nCHROMEDRIVER_TEST_PATH is set in',
-      chromedriverPath
-    );
+    console.log('CHROME_TEST_PATH is set in', chromePath);
+    console.log('CHROMEDRIVER_TEST_PATH is set in', chromedriverPath);
+    console.log('VERSION:', version);
   } catch (e) {
-    console.error('Error setting CHROME/CHROMEDRIVER_TEST_PATH', e);
+    console.error('Error setting CHROME/CHROMEDRIVER_TEST_PATH/VERSION', e);
   }
 }
 
-function getEnv() {
+async function getEnv() {
   const envPath = path.resolve(BDM_CACHE_DIR, '.env');
   try {
-    const env = fs.readFileSync(envPath, 'utf8');
+    const env = await fs.readFile(envPath, 'utf8');
     return env;
   } catch {
     return null;
   }
 }
 
-function which() {
-  const env = getEnv();
+async function which() {
+  const env = await getEnv();
   console.log(env);
   return;
 }
 
-function version() {
-  const pattern = /-(\d+\.\d+\.\d+\.\d+)/;
-  const env = getEnv();
+async function version() {
+  const pattern = /^VERSION="([\d.]+)"$/m;
+  const env = await getEnv();
   // Search for the pattern in the file path
   const match = env?.match(pattern);
 
@@ -104,8 +100,10 @@ async function install(browserId, options) {
   // Create a cache directory if it does not exist on the user's home directory
   // This will be where environment variables will be stored for the tests
   // since it is a consistent location across different platforms
-  if (!fs.existsSync(BDM_CACHE_DIR)) {
-    await fsPromises.mkdir(BDM_CACHE_DIR, { recursive: true });
+  try {
+    await fs.mkdir(BDM_CACHE_DIR, { recursive: true });
+  } catch {
+    console.log(`${BDM_CACHE_DIR} already exists`);
   }
 
   if (browser.includes('chrome')) {
@@ -137,7 +135,8 @@ async function install(browserId, options) {
 
     await setEnv({
       chromePath: installedChrome.executablePath,
-      chromedriverPath: installedChromedriver.executablePath
+      chromedriverPath: installedChromedriver.executablePath,
+      version: chromeBuildId
     });
   }
 }
