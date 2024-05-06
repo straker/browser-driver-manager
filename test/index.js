@@ -92,10 +92,10 @@ describe('browser-driver-manager', () => {
 
       sinon.assert.calledWith(mockConsoleLog, envContents);
     });
-    it("shouldn't log if no environment path dir exists", async () => {
+    it('should log an error if no environment file exists', async () => {
       await which();
 
-      sinon.assert.calledWith(mockConsoleLog, null);
+      sinon.assert.calledWith(mockConsoleError, 'No environment file exists');
     });
   });
   describe('version', () => {
@@ -105,11 +105,10 @@ describe('browser-driver-manager', () => {
 
       sinon.assert.calledWith(mockConsoleLog, 'Version:', mockVersion);
     });
-    it("should error when the path doesn't exist", async () => {
-      const notFoundMessage = 'Version not found in the file path.';
+    it("should log an error when the environment file doesn't exist", async () => {
       await version();
 
-      sinon.assert.calledWith(mockConsoleLog, notFoundMessage);
+      sinon.assert.calledWith(mockConsoleError, 'No environment file exists');
     });
     it('should error when version is not found', async () => {
       const notFoundMessage = 'Version not found in the file path.';
@@ -120,8 +119,15 @@ describe('browser-driver-manager', () => {
     });
   });
   describe('install', () => {
+    it('should throw if an unsupported browser is given', async () => {
+      try {
+        await install('firefox');
+        throw new Error('should have thrown');
+      } catch (e) {
+        expect(e.message).to.contain('The browser firefox is not supported');
+      }
+    });
     it("should create the cache directory if it doesn't already exist", async () => {
-      console.log = originalConsoleLog;
       try {
         await fs.access(MOCK_BDM_CACHE_DIR);
         throw new Error('should have thrown');

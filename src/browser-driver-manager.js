@@ -63,25 +63,30 @@ async function setEnv({ chromePath, chromedriverPath, version }) {
 
 async function getEnv() {
   const envPath = path.resolve(BDM_CACHE_DIR, '.env');
-  try {
-    const env = await fs.readFile(envPath, 'utf8');
-    return env;
-  } catch {
-    return null;
-  }
+  const env = await fs.readFile(envPath, 'utf8');
+  return env;
 }
 
 async function which() {
-  const env = await getEnv();
-  console.log(env);
-  return;
+  try {
+    const env = await getEnv();
+    console.log(env);
+  } catch {
+    console.error('No environment file exists');
+  }
 }
 
 async function version() {
   const pattern = /^VERSION="([\d.]+)"$/m;
-  const env = await getEnv();
+  let env;
+  try {
+    env = await getEnv();
+  } catch {
+    console.error('No environment file exists');
+    return;
+  }
   // Search for the pattern in the file path
-  const match = env?.match(pattern);
+  const match = env.match(pattern);
 
   if (match) {
     const version = match[1];
@@ -106,39 +111,37 @@ async function install(browserId, options) {
     console.log(`${BDM_CACHE_DIR} already exists`);
   }
 
-  if (browser.includes('chrome')) {
-    const platform = detectBrowserPlatform();
-
-    if (!platform) {
-      throw new Error('Unable to detect browser platform');
-    }
-    // This will sync the browser and chromedriver versions
-    const chromeBuildId = await resolveBuildId(
-      Browser.CHROME,
-      platform,
-      version
-    );
-
-    const installedChrome = await installBrowser(
-      BDM_CACHE_DIR,
-      Browser.CHROME,
-      chromeBuildId,
-      options
-    );
-
-    const installedChromedriver = await installBrowser(
-      BDM_CACHE_DIR,
-      Browser.CHROMEDRIVER,
-      chromeBuildId,
-      options
-    );
-
-    await setEnv({
-      chromePath: installedChrome.executablePath,
-      chromedriverPath: installedChromedriver.executablePath,
-      version: chromeBuildId
-    });
+  if (!browser.includes('chrome')) {
+    throw new Error(`The browser ${browser} is not supported`);
   }
+
+  const platform = detectBrowserPlatform();
+
+  if (!platform) {
+    throw new Error('Unable to detect browser platform');
+  }
+  // This will sync the browser and chromedriver versions
+  const chromeBuildId = await resolveBuildId(Browser.CHROME, platform, version);
+
+  const installedChrome = await installBrowser(
+    BDM_CACHE_DIR,
+    Browser.CHROME,
+    chromeBuildId,
+    options
+  );
+
+  const installedChromedriver = await installBrowser(
+    BDM_CACHE_DIR,
+    Browser.CHROMEDRIVER,
+    chromeBuildId,
+    options
+  );
+
+  await setEnv({
+    chromePath: installedChrome.executablePath,
+    chromedriverPath: installedChromedriver.executablePath,
+    version: chromeBuildId
+  });
 }
 
 module.exports = { install, version, which };
