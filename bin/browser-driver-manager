@@ -1,8 +1,19 @@
 #!/usr/bin/env node
+const { install, version, which } = require('../src/browser-driver-manager.js');
+const { Command } = require('commander');
 
-const browserDriverManager = require('../src/browser-driver-manager.js');
+const program = new Command();
 
-browserDriverManager(process.argv.slice(2)).catch(error => {
-  console.error(error)
-  process.exit(1)
-})
+program.command('which')
+  .description('Displays the locations of the installed browser and driver')
+  .action(which);
+program.command('version')
+  .description('Displays the version of the installed browser and driver')
+  .action(version);
+program.command('install')
+  .description('Installs browsers and drivers')
+  .argument('<browser>', 'the browser and driver to install. Use "chrome" to install Chrome and Chromedriver')
+  .option('--verbose', 'display additional information about the download process.')
+  .action(install);
+
+program.parse();

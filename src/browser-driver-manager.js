@@ -4,56 +4,62 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const readline = require('readline');
-const {
-  install,
-  resolveBuildId,
-  detectBrowserPlatform,
-  Browser
-} = require('@puppeteer/browsers');
-const { Command } = require('commander');
+const puppeteerBrowsers = require('@puppeteer/browsers');
+const puppeteerInstall = puppeteerBrowsers.install;
+const { resolveBuildId, detectBrowserPlatform, Browser } = puppeteerBrowsers;
 
 const HOME_DIR = os.homedir();
 const BDM_CACHE_DIR = path.resolve(HOME_DIR, '.browser-driver-manager');
 
-const program = new Command();
+const showDownloadProgress = (downloadedBytes, totalBytes) => {
+  // closes over browser, options, and cursorEnabled
+  if (!options.verbose) {
+    return;
+  }
+  const browserTitle = browser[0].toUpperCase() + browser.slice(1);
+  let progressMessage = `Downloading ${browserTitle}: `;
+  if (downloadedBytes < totalBytes) {
+    if (cursorEnabled) {
+      const cursorDisablingString = '\x1B[?25l';
+      progressMessage = `${cursorDisablingString}${progressMessage}`;
+      cursorEnabled = false;
+    }
+    progressMessage += `${Math.ceil((downloadedBytes * 100) / totalBytes)}%`;
+  } else {
+    const cursorEnablingString = '\n\x1B[?25h';
+    progressMessage += `Done!${cursorEnablingString}`;
+    cursorEnabled = true;
+  }
+  readline.cursorTo(process.stdout, 0);
+  process.stdout.write(progressMessage);
+};
 
-program.command('which').action(which);
-program.command('version').action(version);
-
-program.option('--verbose');
-
-program.parse();
-
-const options = program.opts();
-
-async function installBrowser(cacheDir, browser, version) {
-  let cursorEnabled = true;
+async function installBrowser(cacheDir, browser, version, options) {
+  const platform = detectBrowserPlatform();
+  const buildId = await resolveBuildId(browser, platform, version);
 
   const downloadProgressCallback = (downloadedBytes, totalBytes) => {
-    if (!options.verbose) {
+    // closes over browser and options
+    if (!options?.verbose) {
       return;
     }
-    let progressMessage = `Downloading ${browser[0].toUpperCase()}${browser.slice(
-      1
-    )}: `;
+    const browserTitle = browser[0].toUpperCase() + browser.slice(1);
+    let progressMessage = `Downloading ${browserTitle}: `;
     if (downloadedBytes < totalBytes) {
-      if (cursorEnabled) {
-        // \x1B[?25l disables the cursor
-        progressMessage = `\x1B[?25l${progressMessage}`;
-        cursorEnabled = false;
-      }
+      const cursorDisablingString = '\x1B[?25l';
+      progressMessage = `${cursorDisablingString}${progressMessage}`;
+      cursorEnabled = false;
       progressMessage += `${Math.ceil((downloadedBytes * 100) / totalBytes)}%`;
     } else {
-      // \x1B[?25h enables the cursor
-      progressMessage += `Done!\n\x1B[?25h`;
+      const cursorEnablingString = '\n\x1B[?25h';
+      progressMessage += `Done!${cursorEnablingString}`;
       cursorEnabled = true;
     }
     readline.cursorTo(process.stdout, 0);
     process.stdout.write(progressMessage);
   };
-  const platform = detectBrowserPlatform();
-  const buildId = await resolveBuildId(browser, platform, version);
-  const installedBrowser = await install({
+
+  const installedBrowser = await puppeteerInstall({
     cacheDir,
     browser,
     buildId,
@@ -72,9 +78,9 @@ async function setEnv({ chromePath, chromedriverPath }) {
       `CHROME_TEST_PATH="${chromePath}"\nCHROMEDRIVER_TEST_PATH="${chromedriverPath}"`
     );
     console.log(
-      'CHROME_TEST_PATH is set in ',
+      'CHROME_TEST_PATH is set in',
       chromePath,
-      '\nCHROMEDRIVER_TEST_PATH is set in ',
+      '\nCHROMEDRIVER_TEST_PATH is set in',
       chromedriverPath
     );
   } catch (e) {
@@ -112,16 +118,10 @@ function version() {
   return;
 }
 
-async function browserDriverManager(args) {
-  if (!args[0]) {
-    throw new Error(
-      'Please specify browser and version in browser@version format'
-    );
-  }
-
+async function install(browserId, options) {
   // When parsing the values the version value could be set
   // as a version number (e.g. 116.0.5845.96) or a channel (e.g. beta, dev, canary)
-  const [browser, version = 'latest'] = args[0].split('@');
+  const [browser, version = 'latest'] = browserId.split('@');
 
   // Create a cache directory if it does not exist on the user's home directory
   // This will be where environment variables will be stored for the tests
@@ -143,23 +143,25 @@ async function browserDriverManager(args) {
       version
     );
 
-    const installChrome = await installBrowser(
+    const installedChrome = await installBrowser(
       BDM_CACHE_DIR,
       Browser.CHROME,
-      chromeBuildId
+      chromeBuildId,
+      options
     );
 
-    const installChromedriver = await installBrowser(
+    const installedChromedriver = await installBrowser(
       BDM_CACHE_DIR,
       Browser.CHROMEDRIVER,
-      chromeBuildId
+      chromeBuildId,
+      options
     );
 
     await setEnv({
-      chromePath: installChrome.executablePath,
-      chromedriverPath: installChromedriver.executablePath
+      chromePath: installedChrome.executablePath,
+      chromedriverPath: installedChromedriver.executablePath
     });
   }
 }
 
-module.exports = browserDriverManager;
+module.exports = { install, version, which };
