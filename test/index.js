@@ -6,12 +6,10 @@ const fs = require('fs').promises;
 const os = require('os');
 
 const originalProcessStdoutWrite = process.stdout.write;
-const originalConsoleLog = console.log;
-const originalConsoleError = console.error;
 
 const mockProcessStdoutWrite = sinon.stub();
-const mockConsoleLog = sinon.stub();
-const mockConsoleError = sinon.stub();
+const mockConsoleLog = sinon.stub(console, 'log');
+const mockConsoleError = sinon.stub(console, 'error');
 
 const mockVersion = '126.0.6442.0';
 const MOCK_HOME_DIR = './mock-user-home-dir';
@@ -24,9 +22,9 @@ const chromeTestPath = `${MOCK_BDM_CACHE_DIR}/chrome/os_arch-${mockVersion}/chro
 const chromedriverTestPath = `${MOCK_BDM_CACHE_DIR}/chromedriver/os_arch-${mockVersion}/chromedriver`;
 const envContents = `CHROME_TEST_PATH="${chromeTestPath}"${os.EOL}CHROMEDRIVER_TEST_PATH="${chromedriverTestPath}"${os.EOL}VERSION="${mockVersion}"`;
 
-const mockResolveBuildId = sinon.stub().returns(mockVersion);
-const mockDetectBrowserPlatform = sinon.stub().returns('mac');
-const mockInstall = sinon.stub().returns({ executablePath: 'foo/bar' });
+const mockResolveBuildId = sinon.stub();
+const mockDetectBrowserPlatform = sinon.stub();
+const mockInstall = sinon.stub();
 const mockBrowser = {
   CHROME: 'chrome',
   CHROMEDRIVER: 'chromedriver'
@@ -51,12 +49,11 @@ const { install, version, which } = proxyquire(
 );
 
 beforeEach(async () => {
-  console.log = mockConsoleLog;
-  console.error = mockConsoleError;
+  browser = 'chrome';
 
   mockDetectBrowserPlatform.returns('mac');
-
-  browser = 'chrome';
+  mockInstall.returns({ executablePath: chromeTestPath });
+  mockResolveBuildId.returns(mockVersion);
 
   try {
     await fs.rm(MOCK_HOME_DIR, { recursive: true });
@@ -66,16 +63,7 @@ beforeEach(async () => {
 });
 
 afterEach(() => {
-  console.log = originalConsoleLog;
-  console.error = originalConsoleError;
-
-  mockConsoleLog.resetHistory();
-  mockConsoleError.resetHistory();
-  mockProcessStdoutWrite.resetHistory();
-
-  mockResolveBuildId.resetHistory();
-  mockDetectBrowserPlatform.resetHistory();
-  mockInstall.resetHistory();
+  sinon.reset();
 });
 
 const makeEnvFile = async (contents = envContents) => {
