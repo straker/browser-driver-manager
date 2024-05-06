@@ -10,10 +10,7 @@ const { resolveBuildId, detectBrowserPlatform, Browser } = puppeteerBrowsers;
 const HOME_DIR = os.homedir();
 const BDM_CACHE_DIR = path.resolve(HOME_DIR, '.browser-driver-manager');
 
-async function installBrowser(cacheDir, browser, version, options) {
-  const platform = detectBrowserPlatform();
-  const buildId = await resolveBuildId(browser, platform, version);
-
+async function installBrowser(cacheDir, browser, buildId, options) {
   const downloadProgressCallback = (downloadedBytes, totalBytes) => {
     // closes over browser and options
     if (!options?.verbose) {
