@@ -11,29 +11,6 @@ const { resolveBuildId, detectBrowserPlatform, Browser } = puppeteerBrowsers;
 const HOME_DIR = os.homedir();
 const BDM_CACHE_DIR = path.resolve(HOME_DIR, '.browser-driver-manager');
 
-const showDownloadProgress = (downloadedBytes, totalBytes) => {
-  // closes over browser, options, and cursorEnabled
-  if (!options.verbose) {
-    return;
-  }
-  const browserTitle = browser[0].toUpperCase() + browser.slice(1);
-  let progressMessage = `Downloading ${browserTitle}: `;
-  if (downloadedBytes < totalBytes) {
-    if (cursorEnabled) {
-      const cursorDisablingString = '\x1B[?25l';
-      progressMessage = `${cursorDisablingString}${progressMessage}`;
-      cursorEnabled = false;
-    }
-    progressMessage += `${Math.ceil((downloadedBytes * 100) / totalBytes)}%`;
-  } else {
-    const cursorEnablingString = '\n\x1B[?25h';
-    progressMessage += `Done!${cursorEnablingString}`;
-    cursorEnabled = true;
-  }
-  readline.cursorTo(process.stdout, 0);
-  process.stdout.write(progressMessage);
-};
-
 async function installBrowser(cacheDir, browser, version, options) {
   const platform = detectBrowserPlatform();
   const buildId = await resolveBuildId(browser, platform, version);
@@ -106,9 +83,9 @@ function which() {
 
 function version() {
   const pattern = /-(\d+\.\d+\.\d+\.\d+)/;
-  const filePath = getEnv();
+  const env = getEnv();
   // Search for the pattern in the file path
-  const match = filePath?.match(pattern);
+  const match = env?.match(pattern);
 
   if (match) {
     const version = match[1];
