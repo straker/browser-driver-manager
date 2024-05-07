@@ -80,7 +80,7 @@ async function version() {
   const match = env.match(pattern);
 
   const version = match[1];
-  console.log('Version:', version);
+  console.log(version);
 }
 
 async function install(browserId, options) {

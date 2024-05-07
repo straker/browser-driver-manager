@@ -95,7 +95,7 @@ describe('browser-driver-manager', () => {
       await makeEnvFile();
       await version();
 
-      sinon.assert.calledWith(mockConsoleLog, 'Version:', mockVersion);
+      sinon.assert.calledWith(mockConsoleLog, mockVersion);
     });
     it("should error when the environment file doesn't exist", async () => {
       try {
