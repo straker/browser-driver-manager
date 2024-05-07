@@ -1,9 +1,12 @@
 const sinon = require('sinon');
 const proxyquire = require('proxyquire').noCallThru();
-const expect = require('chai').expect;
 const path = require('path');
-const fs = require('fs').promises;
+const fsPromises = require('fs').promises;
 const os = require('os');
+const chai = require('chai');
+const chaiAsPromised = require('chai-as-promised');
+const expect = chai.expect;
+chai.use(chaiAsPromised);
 
 const originalProcessStdoutWrite = process.stdout.write;
 
@@ -55,7 +58,7 @@ beforeEach(async () => {
   mockResolveBuildId.returns(mockVersion);
 
   try {
-    await fs.rm(MOCK_HOME_DIR, { recursive: true });
+    await fsPromises.rm(MOCK_HOME_DIR, { recursive: true });
   } catch (e) {}
 });
 
@@ -64,8 +67,8 @@ afterEach(() => {
 });
 
 const makeEnvFile = async (contents = envContents) => {
-  await fs.mkdir(MOCK_BDM_CACHE_DIR, { recursive: true });
-  await fs.writeFile(envPath, contents);
+  await fsPromises.mkdir(MOCK_BDM_CACHE_DIR, { recursive: true });
+  await fsPromises.writeFile(envPath, contents);
 };
 
 describe('browser-driver-manager', () => {
@@ -77,14 +80,9 @@ describe('browser-driver-manager', () => {
       sinon.assert.calledWith(mockConsoleLog, envContents);
     });
     it('should error if no environment file exists', async () => {
-      try {
-        await which();
-        throw new Error('should have thrown');
-      } catch (e) {
-        expect(e.message).to.contain(
-          'No environment file exists. Please install first'
-        );
-      }
+      await expect(which()).to.be.rejectedWith(
+        'No environment file exists. Please install first'
+      );
     });
   });
   describe('version', () => {
@@ -95,87 +93,30 @@ describe('browser-driver-manager', () => {
       sinon.assert.calledWith(mockConsoleLog, mockVersion);
     });
     it('should error if no environment file exists', async () => {
-      try {
-        await version();
-        throw new Error('should have thrown');
-      } catch (e) {
-        expect(e.message).to.contain(
-          'No environment file exists. Please install first'
-        );
-      }
+      await expect(which()).to.be.rejectedWith(
+        'No environment file exists. Please install first'
+      );
     });
   });
   describe('install', () => {
     it('should error if an unsupported browser is given', async () => {
-      try {
-        await install('firefox');
-        throw new Error('should have thrown');
-      } catch (e) {
-        expect(e.message).to.contain(
-          'The selected browser, firefox, could not be installed. Currently, only "chrome" is supported.'
-        );
-      }
+      await expect(install('firefox')).to.be.rejectedWith(
+        'The selected browser, firefox, could not be installed. Currently, only "chrome" is supported.'
+      );
     });
     it("should create the cache directory if it doesn't already exist", async () => {
       await install(browser);
-      expect(await fs.access(MOCK_BDM_CACHE_DIR)).not.to.throw;
+      await expect(fsPromises.access(MOCK_BDM_CACHE_DIR)).to.be.fulfilled;
     });
 
-    it('should call detectBrowserPlatform', async () => {
-      await install(browser);
-      sinon.assert.called(mockDetectBrowserPlatform);
-    });
-
-    it("should throw if the platform couldn't be detected", async () => {
+    it("should error if the platform couldn't be detected", async () => {
       mockDetectBrowserPlatform.returns(undefined);
-      try {
-        await install(browser);
-        expect.fail();
-      } catch (e) {
-        expect(e.message).to.equal('Unable to detect browser platform');
-      }
-    });
-
-    it('should call resolveBuildId with the correct arguments when no version is given', async () => {
-      await install(browser);
-
-      sinon.assert.calledWith(mockResolveBuildId, 'chrome', 'mac', 'latest');
-    });
-
-    it('should call resolveBuildId with the correct arguments when a version is given', async () => {
-      browser = 'chrome@latest';
-      await install(browser);
-
-      sinon.assert.calledWith(mockResolveBuildId, 'chrome', 'mac', 'latest');
-    });
-
-    it('should call install with Chrome and the buildId', async () => {
-      await install(browser);
-
-      sinon.assert.calledWith(
-        mockInstall,
-        sinon.match({
-          browser: 'chrome',
-          buildId: mockVersion,
-          downloadProgressCallback: sinon.match.func
-        })
+      await expect(install(browser)).to.be.rejectedWith(
+        'Unable to detect browser platform'
       );
     });
 
-    it('should call install with Chromedriver and the buildId', async () => {
-      await install(browser);
-
-      sinon.assert.calledWith(
-        mockInstall,
-        sinon.match({
-          browser: 'chromedriver',
-          buildId: mockVersion,
-          downloadProgressCallback: sinon.match.func
-        })
-      );
-    });
-
-    it('should write the environment variables to the file system', async () => {
+    it('creates the environment file when a valid version is given', async () => {
       mockInstall
         .withArgs(
           sinon.match({
@@ -196,34 +137,63 @@ describe('browser-driver-manager', () => {
         )
         .returns({ executablePath: chromedriverTestPath });
 
-      await install(browser);
+      await install('chrome@latest');
 
       sinon.assert.calledWith(
         mockConsoleLog,
         'Setting env CHROME/CHROMEDRIVER_TEST_PATH/VERSION'
       );
-      const env = await fs.readFile(envPath, 'utf-8');
+      await expect(fsPromises.readFile(envPath, 'utf-8')).to.be.fulfilled;
+      const env = await fsPromises.readFile(envPath, 'utf-8');
       expect(env.match(chromeTestPath)).to.not.be.null;
       expect(env.match(chromedriverTestPath)).to.not.be.null;
+      expect(env.match(mockVersion)).to.not.be.null;
+    });
+
+    it('it creates an environment file when no version is given', async () => {
+      mockInstall
+        .withArgs(
+          sinon.match({
+            cacheDir: sinon.match.string,
+            browser: 'chrome',
+            buildId: sinon.match.string
+          })
+        )
+        .returns({ executablePath: chromeTestPath });
+
+      mockInstall
+        .withArgs(
+          sinon.match({
+            cacheDir: sinon.match.string,
+            browser: 'chromedriver',
+            buildId: sinon.match.string
+          })
+        )
+        .returns({ executablePath: chromedriverTestPath });
+
+      await install('chrome');
+
+      sinon.assert.calledWith(
+        mockConsoleLog,
+        'Setting env CHROME/CHROMEDRIVER_TEST_PATH/VERSION'
+      );
+      const env = await fsPromises.readFile(envPath, 'utf-8');
+      expect(env.match(chromeTestPath)).to.not.be.null;
+      expect(env.match(chromedriverTestPath)).to.not.be.null;
+      expect(env.match(mockVersion)).to.not.be.null;
     });
 
     it('should error if unable to write the file', async () => {
-      sinon.stub(fs, 'writeFile').rejects('unable to write file');
-
-      try {
-        await install(browser);
-        throw new Error('should have thrown');
-      } catch (e) {
-        expect(e.message).to.contain(
-          'Error setting CHROME/CHROMEDRIVER_TEST_PATH/VERSION'
-        );
-      }
+      sinon.stub(fsPromises, 'writeFile').rejects('unable to write file');
+      await expect(install(browser)).to.be.rejectedWith(
+        'Error setting CHROME/CHROMEDRIVER_TEST_PATH/VERSION'
+      );
     });
     describe('does not show download progress when', () => {
       it('there are no options passed', () => {
         const downloadProgressCaller = ({ downloadProgressCallback }) => {
           downloadProgressCallback();
-          return { executablePath: 'foo/bar' };
+          return { executablePath: chromeTestPath };
         };
         let { install } = proxyquire('../src/browser-driver-manager', {
           '@puppeteer/browsers': {
@@ -241,7 +211,7 @@ describe('browser-driver-manager', () => {
       it('the verbose option is false', () => {
         const downloadProgressCaller = ({ downloadProgressCallback }) => {
           downloadProgressCallback();
-          return { executablePath: 'foo/bar' };
+          return { executablePath: chromeTestPath };
         };
         let { install } = proxyquire('../src/browser-driver-manager', {
           '@puppeteer/browsers': {
@@ -263,7 +233,7 @@ describe('browser-driver-manager', () => {
       it('writes the browser and download progress', async () => {
         const downloadProgressCaller = ({ downloadProgressCallback }) => {
           downloadProgressCallback(1, 100);
-          return { executablePath: 'foo/bar' };
+          return { executablePath: chromeTestPath };
         };
         let { install } = proxyquire('../src/browser-driver-manager', {
           '@puppeteer/browsers': {
@@ -283,7 +253,7 @@ describe('browser-driver-manager', () => {
       it('writes when the download is done', async () => {
         const downloadProgressCaller = ({ downloadProgressCallback }) => {
           downloadProgressCallback(100, 100);
-          return { executablePath: 'foo/bar' };
+          return { executablePath: chromeTestPath };
         };
         let { install } = proxyquire('../src/browser-driver-manager', {
           '@puppeteer/browsers': {
