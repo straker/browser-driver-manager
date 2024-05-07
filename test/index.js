@@ -9,7 +9,6 @@ const originalProcessStdoutWrite = process.stdout.write;
 
 const mockProcessStdoutWrite = sinon.stub();
 const mockConsoleLog = sinon.stub(console, 'log');
-const mockConsoleError = sinon.stub(console, 'error');
 
 const mockVersion = '126.0.6442.0';
 const MOCK_HOME_DIR = './mock-user-home-dir';
@@ -57,9 +56,7 @@ beforeEach(async () => {
 
   try {
     await fs.rm(MOCK_HOME_DIR, { recursive: true });
-  } catch (e) {
-    console.log(e);
-  }
+  } catch (e) {}
 });
 
 afterEach(() => {
@@ -79,7 +76,7 @@ describe('browser-driver-manager', () => {
 
       sinon.assert.calledWith(mockConsoleLog, envContents);
     });
-    it('should throw if no environment file exists', async () => {
+    it('should error if no environment file exists', async () => {
       try {
         await which();
         throw new Error('should have thrown');
@@ -97,7 +94,7 @@ describe('browser-driver-manager', () => {
 
       sinon.assert.calledWith(mockConsoleLog, mockVersion);
     });
-    it("should error when the environment file doesn't exist", async () => {
+    it('should error if no environment file exists', async () => {
       try {
         await version();
         throw new Error('should have thrown');
@@ -109,12 +106,15 @@ describe('browser-driver-manager', () => {
     });
   });
   describe('install', () => {
-    it('should throw if an unsupported browser is given', async () => {
-      await install('firefox');
-      sinon.assert.calledWith(
-        mockConsoleError,
-        'The browser firefox is not supported. Currently, only "chrome" is supported.'
-      );
+    it('should error if an unsupported browser is given', async () => {
+      try {
+        await install('firefox');
+        throw new Error('should have thrown');
+      } catch (e) {
+        expect(e.message).to.contain(
+          'The selected browser, firefox, could not be installed. Currently, only "chrome" is supported.'
+        );
+      }
     });
     it("should create the cache directory if it doesn't already exist", async () => {
       await install(browser);
@@ -207,15 +207,17 @@ describe('browser-driver-manager', () => {
       expect(env.match(chromedriverTestPath)).to.not.be.null;
     });
 
-    it('should log an error if unable to write the file', async () => {
+    it('should error if unable to write the file', async () => {
       sinon.stub(fs, 'writeFile').rejects('unable to write file');
 
-      await install(browser);
-
-      sinon.assert.calledWith(
-        mockConsoleError,
-        'Error setting CHROME/CHROMEDRIVER_TEST_PATH/VERSION'
-      );
+      try {
+        await install(browser);
+        throw new Error('should have thrown');
+      } catch (e) {
+        expect(e.message).to.contain(
+          'Error setting CHROME/CHROMEDRIVER_TEST_PATH/VERSION'
+        );
+      }
     });
     describe('does not show download progress when', () => {
       it('there are no options passed', () => {

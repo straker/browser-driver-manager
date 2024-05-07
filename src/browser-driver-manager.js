@@ -54,7 +54,7 @@ async function setEnv({ chromePath, chromedriverPath, version }) {
     console.log('CHROMEDRIVER_TEST_PATH is set in', chromedriverPath);
     console.log('VERSION:', version);
   } catch (e) {
-    console.error('Error setting CHROME/CHROMEDRIVER_TEST_PATH/VERSION', e);
+    throw new Error('Error setting CHROME/CHROMEDRIVER_TEST_PATH/VERSION');
   }
 }
 
@@ -100,10 +100,9 @@ async function install(browserId, options) {
   // Should support for other browsers be added, commander should handle this check.
   // With only one supported browser, this error message is more meaningful than commander's.
   if (!browser.includes('chrome')) {
-    console.error(
-      `The browser ${browser} is not supported. Currently, only "chrome" is supported.`
+    throw new Error(
+      `The selected browser, ${browser}, could not be installed. Currently, only "chrome" is supported.`
     );
-    return;
   }
 
   const platform = detectBrowserPlatform();
