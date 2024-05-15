@@ -36,7 +36,7 @@ Here's an example of doing just that in an npm script.
 ```json
 {
   "scripts": {
-    "install:chrome": "browser-driver-manager chrome"
+    "install:chrome": "browser-driver-manager install chrome"
   }
 }
 ```
@@ -46,7 +46,7 @@ If you wanted to install Chrome Beta and its associated driver:
 ```json
 {
   "scripts": {
-    "install:chromedriver": "browser-driver-manager chrome@beta"
+    "install:chromedriver": "browser-driver-manager install chrome@beta"
   }
 }
 ```
@@ -67,15 +67,15 @@ Install dependencies with
 
 ### Commands
 
-- **chrome:** 
+- **install:** 
     Install the browser and driver. Can also pass the specific browser channel or version for each browser and driver. The latest Stable channel is used if no channel is passed.
 
     ```bash
     # Install latest Chrome Stable and matching Chromedriver version
-    browser-driver-manager chrome
+    browser-driver-manager install chrome
 
     # Install latest Chrome Beta and matching Chromedriver
-    browser-driver-manager chrome@beta
+    browser-driver-manager install chrome@beta
 
 - **version:** 
     Get the installed version of the browser or driver.
