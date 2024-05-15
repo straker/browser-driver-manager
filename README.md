@@ -10,7 +10,7 @@ npm install browser-driver-manager
 ## Usage
 
 ```terminal
-npx browser-driver-manager chrome
+npx browser-driver-manager install chrome
 ```
 
 Managing browsers and drivers for continuous integration, especially Chrome and ChromeDriver, can be extremely difficult, if not utterly frustrating.
