@@ -169,7 +169,4 @@ async function install(browserId, options) {
   });
 }
 
-const capitalize = word =>
-  word.split('')[0].toUpperCase() + word.split('').slice(1).join('');
-
 module.exports = { install, version, which };
