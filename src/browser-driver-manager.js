@@ -5,7 +5,9 @@ const path = require('path');
 const readline = require('readline');
 const puppeteerBrowsers = require('@puppeteer/browsers');
 const puppeteerInstall = puppeteerBrowsers.install;
-const { resolveBuildId, detectBrowserPlatform, Browser } = puppeteerBrowsers;
+const { resolveBuildId, detectBrowserPlatform, Browser, uninstall } =
+  puppeteerBrowsers;
+const { capitalize } = require('./utils');
 
 const getBDMCacheDir = () =>
   path.resolve(os.homedir(), '.browser-driver-manager');
@@ -16,16 +18,14 @@ async function installBrowser(cacheDir, browser, buildId, options) {
     if (!options?.verbose) {
       return;
     }
-    const browserTitle = browser[0].toUpperCase() + browser.slice(1);
+    const browserTitle = capitalize(browser);
     let progressMessage = `Downloading ${browserTitle}: `;
     if (downloadedBytes < totalBytes) {
       const cursorDisablingString = '\x1B[?25l';
       progressMessage = `${cursorDisablingString}${progressMessage}`;
-      cursorEnabled = false;
       progressMessage += `${Math.ceil((downloadedBytes * 100) / totalBytes)}%`;
     } else {
       const cursorEnablingString = '\r\n\x1B[?25h';
-      cursorEnabled = true;
       progressMessage += `Done!${cursorEnablingString}`;
     }
     readline.cursorTo(process.stdout, 0);
@@ -104,16 +104,6 @@ async function install(browserId, options) {
   // as a version number (e.g. 116.0.5845.96) or a channel (e.g. beta, dev, canary)
   const [browser, version = 'latest'] = browserId.split('@');
 
-  // Create a cache directory if it does not exist on the user's home directory
-  // This will be where environment variables will be stored for the tests
-  // since it is a consistent location across different platforms
-  const BDMCacheDir = getBDMCacheDir();
-  try {
-    await fsPromises.mkdir(BDMCacheDir, { recursive: true });
-  } catch {
-    console.log(`${BDMCacheDir} already exists`);
-  }
-
   // Should support for other browsers be added, commander should handle this check.
   // With only one supported browser, this error message is more meaningful than commander's.
   if (!browser.includes('chrome')) {
@@ -128,16 +118,17 @@ async function install(browserId, options) {
     throw new Error('Unable to detect browser platform');
   }
   // This will sync the browser and chromedriver versions
-  let chromeBuildId;
+  let buildId;
   try {
-    chromeBuildId = await resolveBuildId(Browser.CHROME, platform, version);
+    buildId = await resolveBuildId(Browser.CHROME, platform, version);
   } catch (e) {
     throw new Error(e);
   }
 
   const currentVersion = await getVersion();
+  const cacheDir = getBDMCacheDir();
   if (currentVersion) {
-    if (currentVersion === chromeBuildId) {
+    if (currentVersion === buildId) {
       console.log(
         `Chrome and Chromedriver versions ${currentVersion} are already installed. Skipping installation.`
       );
@@ -146,26 +137,69 @@ async function install(browserId, options) {
     console.log(
       `Chrome and Chromedriver versions ${currentVersion} are currently installed. Overwriting.`
     );
+    ['chrome', 'chromedriver'].map(async browser => {
+      try {
+        await uninstall({
+          browser,
+          buildId: currentVersion,
+          cacheDir
+        });
+        fsPromises.rmdir(path, { recursive: true, force: true });
+      } catch (e) {
+        throw new Error(`Unable to remove ${browser}.`);
+      }
+    });
+    try {
+      // Remove the existing .env. setEnv creates it again later
+      // Should execution stop beforehand, .env will not be in a bad (empty) state
+      await fsPromises.rm(path.resolve(cacheDir, '.env'));
+    } catch (e) {
+      throw new Error(`Unable to remove .env from ${cacheDir}.`);
+    }
   }
 
-  const installedChrome = await installBrowser(
-    BDMCacheDir,
-    Browser.CHROME,
-    chromeBuildId,
-    options
-  );
+  // Create a cache directory if it does not exist on the user's home directory, or if it's been removed above
+  // This will be where environment variables will be stored for the tests
+  // since it is a consistent location across different platforms
+  try {
+    await fsPromises.mkdir(cacheDir, { recursive: true });
+  } catch {
+    console.log(`${cacheDir} already exists`);
+  }
 
-  const installedChromedriver = await installBrowser(
-    BDMCacheDir,
-    Browser.CHROMEDRIVER,
-    chromeBuildId,
-    options
-  );
+  let installedChrome, installedChromedriver;
+  try {
+    installedChrome = await installBrowser(
+      cacheDir,
+      Browser.CHROME,
+      buildId,
+      options
+    );
+  } catch (e) {
+    e.message = /status code 404/.test(e.message)
+      ? `Unable to find version ${buildId} of Chrome`
+      : e.message;
+    throw new Error(e);
+  }
+
+  try {
+    installedChromedriver = await installBrowser(
+      cacheDir,
+      Browser.CHROMEDRIVER,
+      buildId,
+      options
+    );
+  } catch (e) {
+    e.message = /status code 404/.test(e.message)
+      ? `Unable to find version ${buildId} of Chromedriver`
+      : e.message;
+    throw new Error(e);
+  }
 
   await setEnv({
     chromePath: installedChrome.executablePath,
     chromedriverPath: installedChromedriver.executablePath,
-    version: chromeBuildId
+    version: buildId
   });
 }
 

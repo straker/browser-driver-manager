@@ -4,6 +4,7 @@ const path = require('path');
 const fsPromises = require('fs').promises;
 const os = require('os');
 const chai = require('chai');
+const { capitalize } = require('../src/utils');
 const chaiAsPromised = require('chai-as-promised');
 const expect = chai.expect;
 chai.use(chaiAsPromised);
@@ -11,7 +12,7 @@ chai.use(chaiAsPromised);
 const mockConsoleLog = sinon.stub(console, 'log');
 
 const mockVersion = '126.0.6442.0';
-const mockOtherVersion = '124.0.6367.207';
+const mockOverwriteVersion = '124.0.6367.207';
 
 const MOCK_HOME_DIR = './mock-user-home-dir';
 const MOCK_BDM_CACHE_DIR = path.resolve(
@@ -26,6 +27,7 @@ const envContents = `CHROME_TEST_PATH="${chromeTestPath}"${os.EOL}CHROMEDRIVER_T
 const mockResolveBuildId = sinon.stub();
 const mockDetectBrowserPlatform = sinon.stub();
 const mockInstall = sinon.stub();
+const mockUninstall = sinon.stub();
 const mockOSHomeDir = sinon.stub();
 const mockBrowser = {
   CHROME: 'chrome',
@@ -35,7 +37,8 @@ const puppeteerBrowserMocks = {
   detectBrowserPlatform: mockDetectBrowserPlatform,
   install: mockInstall,
   Browser: mockBrowser,
-  resolveBuildId: mockResolveBuildId
+  resolveBuildId: mockResolveBuildId,
+  uninstall: mockUninstall
 };
 
 const osMocks = {
@@ -122,71 +125,73 @@ describe('browser-driver-manager', () => {
         await expect(fsPromises.access(MOCK_BDM_CACHE_DIR)).to.be.fulfilled;
       });
 
-      it('the environment file when a valid version is given', async () => {
-        mockInstall
-          .withArgs(
-            sinon.match({
-              cacheDir: sinon.match.string,
-              browser: 'chrome',
-              buildId: sinon.match.string
-            })
-          )
-          .returns({ executablePath: chromeTestPath });
+      describe('the environment file when', () => {
+        it('a valid version is given', async () => {
+          mockInstall
+            .withArgs(
+              sinon.match({
+                cacheDir: sinon.match.string,
+                browser: 'chrome',
+                buildId: sinon.match.string
+              })
+            )
+            .returns({ executablePath: chromeTestPath });
 
-        mockInstall
-          .withArgs(
-            sinon.match({
-              cacheDir: sinon.match.string,
-              browser: 'chromedriver',
-              buildId: sinon.match.string
-            })
-          )
-          .returns({ executablePath: chromedriverTestPath });
+          mockInstall
+            .withArgs(
+              sinon.match({
+                cacheDir: sinon.match.string,
+                browser: 'chromedriver',
+                buildId: sinon.match.string
+              })
+            )
+            .returns({ executablePath: chromedriverTestPath });
 
-        await install('chrome@latest');
+          await install('chrome@latest');
 
-        sinon.assert.calledWith(
-          mockConsoleLog,
-          'Setting env CHROME/CHROMEDRIVER_TEST_PATH/VERSION'
-        );
-        await expect(fsPromises.readFile(envPath, 'utf-8')).to.be.fulfilled;
-        const env = await fsPromises.readFile(envPath, 'utf-8');
-        expect(env.match(chromeTestPath)).to.not.be.null;
-        expect(env.match(chromedriverTestPath)).to.not.be.null;
-        expect(env.match(mockVersion)).to.not.be.null;
-      });
+          sinon.assert.calledWith(
+            mockConsoleLog,
+            'Setting env CHROME/CHROMEDRIVER_TEST_PATH/VERSION'
+          );
+          await expect(fsPromises.readFile(envPath, 'utf-8')).to.be.fulfilled;
+          const env = await fsPromises.readFile(envPath, 'utf-8');
+          expect(env.match(chromeTestPath)).to.not.be.null;
+          expect(env.match(chromedriverTestPath)).to.not.be.null;
+          expect(env.match(mockVersion)).to.not.be.null;
+        });
 
-      it('the environment file when no version is given', async () => {
-        mockInstall
-          .withArgs(
-            sinon.match({
-              cacheDir: sinon.match.string,
-              browser: 'chrome',
-              buildId: sinon.match.string
-            })
-          )
-          .returns({ executablePath: chromeTestPath });
+        it('no version is given', async () => {
+          mockInstall
+            .withArgs(
+              sinon.match({
+                cacheDir: sinon.match.string,
+                browser: 'chrome',
+                buildId: sinon.match.string
+              })
+            )
+            .returns({ executablePath: chromeTestPath });
 
-        mockInstall
-          .withArgs(
-            sinon.match({
-              cacheDir: sinon.match.string,
-              browser: 'chromedriver',
-              buildId: sinon.match.string
-            })
-          )
-          .returns({ executablePath: chromedriverTestPath });
+          mockInstall
+            .withArgs(
+              sinon.match({
+                cacheDir: sinon.match.string,
+                browser: 'chromedriver',
+                buildId: sinon.match.string
+              })
+            )
+            .returns({ executablePath: chromedriverTestPath });
 
-        await install('chrome');
+          await install('chrome');
 
-        sinon.assert.calledWith(
-          mockConsoleLog,
-          'Setting env CHROME/CHROMEDRIVER_TEST_PATH/VERSION'
-        );
-        const env = await fsPromises.readFile(envPath, 'utf-8');
-        expect(env.match(chromeTestPath)).to.not.be.null;
-        expect(env.match(chromedriverTestPath)).to.not.be.null;
-        expect(env.match(mockVersion)).to.not.be.null;
+          sinon.assert.calledWith(
+            mockConsoleLog,
+            'Setting env CHROME/CHROMEDRIVER_TEST_PATH/VERSION'
+          );
+          const env = await fsPromises.readFile(envPath, 'utf-8');
+          expect(env.match(chromeTestPath)).to.not.be.null;
+          expect(env.match(chromedriverTestPath)).to.not.be.null;
+          expect(env.match(mockVersion)).to.not.be.null;
+        });
       });
     });
     describe('errors when', () => {
@@ -219,35 +224,39 @@ describe('browser-driver-manager', () => {
         );
       });
 
-      it('installing chrome fails', async () => {
-        mockInstall
-          .withArgs(
-            sinon.match({
-              cacheDir: sinon.match.string,
-              browser,
-              buildId: sinon.match.string
-            })
-          )
-          .throws('failed to install chrome');
-        await expect(install(browser)).to.be.rejectedWith(
-          'failed to install chrome'
-        );
-      });
+      const browserInstallFailures = browser => {
+        describe(`installing ${browser} fails with`, async () => {
+          [
+            {
+              error: 'status code 404',
+              message: `Unable to find version ${mockVersion} of ${capitalize(
+                browser
+              )}`
+            },
+            {
+              error: 'any other error',
+              message: 'any other error'
+            }
+          ].forEach(({ error, message }) => {
+            it(error, async () => {
+              mockInstall
+                .withArgs(
+                  sinon.match({
+                    cacheDir: sinon.match.string,
+                    browser,
+                    buildId: mockVersion
+                  })
+                )
+                .throws(error);
+              await expect(install(browser)).to.be.rejectedWith(message);
+            });
+          });
+        });
+      };
 
-      it('installing chromedriver fails', async () => {
-        mockInstall
-          .withArgs(
-            sinon.match({
-              cacheDir: sinon.match.string,
-              browser: 'chromedriver',
-              buildId: sinon.match.string
-            })
-          )
-          .throws('failed to install chromedriver');
-        await expect(install(browser)).to.be.rejectedWith(
-          'failed to install chromedriver'
-        );
-      });
+      ['chrome', 'chromedriver'].forEach(browser =>
+        browserInstallFailures(browser)
+      );
     });
 
     describe('called twice', () => {
@@ -263,19 +272,50 @@ describe('browser-driver-manager', () => {
 
         sinon.assert.calledWith(mockConsoleLog, sinon.match(mockVersion));
       });
-      it('replaces the first installed version with the second', async () => {
-        await install(browser);
-        mockResolveBuildId.returns(mockOtherVersion);
-        await install(browser);
-        sinon.assert.calledWith(
-          mockConsoleLog,
-          sinon.match(
-            `Chrome and Chromedriver versions ${mockVersion} are currently installed. Overwriting.`
-          )
-        );
-        await which();
-
-        sinon.assert.calledWith(mockConsoleLog, sinon.match(mockOtherVersion));
+      describe('when the given version differs from the previous version', () => {
+        beforeEach(async () => {
+          await install(browser);
+          mockResolveBuildId.returns(mockOverwriteVersion);
+          await install(browser);
+        });
+        it(`logs the currently installed version and that we're overwriting`, async () => {
+          sinon.assert.calledWith(
+            mockConsoleLog,
+            sinon.match(
+              `Chrome and Chromedriver versions ${mockVersion} are currently installed. Overwriting.`
+            )
+          );
+        });
+        describe('uninstalls the previous version of', () => {
+          ['chrome', 'chromedriver'].forEach(browser => {
+            it(browser, async () => {
+              sinon.assert.calledWith(
+                mockUninstall,
+                sinon.match({
+                  buildId: mockVersion,
+                  browser
+                })
+              );
+            });
+          });
+        });
+        describe('installs the new version of', () => {
+          ['chrome', 'chromedriver'].forEach(browser => {
+            it(browser, async () => {
+              sinon.assert.calledWith(
+                mockInstall,
+                sinon.match({
+                  buildId: mockOverwriteVersion,
+                  browser
+                })
+              );
+            });
+          });
+        });
+        it('logs the correct current version after installation', async () => {
+          await version();
+          sinon.assert.calledWith(mockConsoleLog, mockOverwriteVersion);
+        });
       });
     });
     describe('does not show download progress when', () => {

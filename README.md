@@ -95,4 +95,4 @@ Install dependencies with
 ### Options
 
 - **-h,--help:** Display the help information
-- **-v,--version:** Display the version information
+- **--verbose:** Output verbose logs
