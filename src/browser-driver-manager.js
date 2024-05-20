@@ -9,9 +9,23 @@ const { resolveBuildId, detectBrowserPlatform, Browser, uninstall } =
   puppeteerBrowsers;
 const { capitalize } = require('./utils');
 
+/**
+ * Get the cache directory.
+ * @returns {string} - Path to the cache directory.
+ */
 const getBDMCacheDir = () =>
   path.resolve(os.homedir(), '.browser-driver-manager');
 
+/**
+ * Install a single browser.
+ * @param {string} cacheDir - The path to the root of the cache directory.
+ * @param {string} browser - Which browser to install.
+ * @param {string} buildId - Which build ID to download. Build IDs uniquely identify binaries.
+ * @param {object} options - Options for customizing how the browser is installed.
+ * @param {string} options.verbose - Show download progress information.
+ * @throws {Error} - Puppeteer's `install` must succeed.
+ * @returns {string} - The installed browser.
+ */
 async function installBrowser(cacheDir, browser, buildId, options) {
   const downloadProgressCallback = (downloadedBytes, totalBytes) => {
     // closes over `browser` and `options`
@@ -46,6 +60,14 @@ async function installBrowser(cacheDir, browser, buildId, options) {
   }
 }
 
+/**
+ * Write the environment file to the BDMCacheDir.
+ * @param {object} data - The data to write.
+ * @param {string} data.chromePath - The path to Chrome.
+ * @param {string} data.chromedriverPath - The path to Chromedriver
+ * @param {string} data.version - The version of Chrome and Chromedriver
+ * @throws {Error} - Environment file must be writable.
+ */
 async function setEnv({ chromePath, chromedriverPath, version }) {
   console.log('Setting env CHROME/CHROMEDRIVER_TEST_PATH/VERSION');
 
@@ -62,6 +84,10 @@ async function setEnv({ chromePath, chromedriverPath, version }) {
   }
 }
 
+/**
+ * Read the environment file from the BDMCacheDir.
+ * @returns {string|undefined} - The content of the environment file.
+ */
 async function getEnv() {
   try {
     const envPath = path.resolve(getBDMCacheDir(), '.env');
@@ -72,6 +98,10 @@ async function getEnv() {
   }
 }
 
+/**
+ * Log the environment file to the console.
+ * @throws {Error} - Environment file must exist.
+ */
 async function which() {
   const env = await getEnv();
   if (!env) {
@@ -80,6 +110,10 @@ async function which() {
   console.log(env);
 }
 
+/**
+ * Read the installed version from the environment file.
+ * @returns {string|null} - The version if one exists.
+ */
 async function getVersion() {
   const pattern = /^VERSION="([\d.]+)"$/m;
   const env = await getEnv();
@@ -91,6 +125,10 @@ async function getVersion() {
   return version;
 }
 
+/**
+ * Log the version to the console.
+ * @throws {Error} - Version must exist.
+ */
 async function version() {
   const version = await getVersion();
   if (!version) {
@@ -99,9 +137,21 @@ async function version() {
   console.log(version);
 }
 
+/**
+ * Install a version of Chrome and Chromedriver.
+ * If already-installed Chrome and Chromedriver match this version, skip installation.
+ * If already-installed Chrome and Chromedriver are a different version, overwrite them.
+ * @param {string} browserId - Browser name (chrome), with an optional `@` and version number (e.g. 116.0.5845.96) or channel (e.g. beta, dev, canary)
+ * @param {object} options - Pass-through to installBrowser
+ * @throws {Error} Browser must be chrome
+ * @throws {Error} Browser platform must be detectable
+ * @throws {Error} Build ID must resolve
+ * @throws {Error} Browser must be uninstallable when one is already installed
+ * @throws {Error} Environment file must be removable when on already exists
+ * @throws {Error} Version of chrome and chromedriver must be findable
+ * @returns
+ */
 async function install(browserId, options) {
-  // When parsing the values the version value could be set
-  // as a version number (e.g. 116.0.5845.96) or a channel (e.g. beta, dev, canary)
   const [browser, version = 'latest'] = browserId.split('@');
 
   // Should support for other browsers be added, commander should handle this check.
@@ -117,7 +167,8 @@ async function install(browserId, options) {
   if (!platform) {
     throw new Error('Unable to detect browser platform');
   }
-  // This will sync the browser and chromedriver versions
+
+  // Get the version to install of both Chrome and Chromedriver
   let buildId;
   try {
     buildId = await resolveBuildId(Browser.CHROME, platform, version);
@@ -125,7 +176,8 @@ async function install(browserId, options) {
     throw new Error(e);
   }
 
-  const currentVersion = await getVersion();
+  // Get any currently installed version
+  const currentVersion = getVersion();
   const cacheDir = getBDMCacheDir();
   if (currentVersion) {
     if (currentVersion === buildId) {
@@ -137,6 +189,7 @@ async function install(browserId, options) {
     console.log(
       `Chrome and Chromedriver versions ${currentVersion} are currently installed. Overwriting.`
     );
+    // Uninstall existing installs
     ['chrome', 'chromedriver'].map(async browser => {
       try {
         await uninstall({
