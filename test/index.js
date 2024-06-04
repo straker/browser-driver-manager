@@ -21,6 +21,7 @@ const envPath = path.resolve(MOCK_BDM_CACHE_DIR, '.env');
 const chromeTestPath = `${MOCK_BDM_CACHE_DIR}/chrome/os_arch-${mockVersion}/chrome`;
 const chromedriverTestPath = `${MOCK_BDM_CACHE_DIR}/chromedriver/os_arch-${mockVersion}/chromedriver`;
 const envContents = `CHROME_TEST_PATH="${chromeTestPath}"${os.EOL}CHROMEDRIVER_TEST_PATH="${chromedriverTestPath}"${os.EOL}VERSION="${mockVersion}"`;
+const noVersionEnvContents = `CHROME_TEST_PATH="${chromeTestPath}"${os.EOL}CHROMEDRIVER_TEST_PATH="${chromedriverTestPath}"${os.EOL}"`;
 
 const mockResolveBuildId = sinon.stub();
 const mockDetectBrowserPlatform = sinon.stub();
@@ -110,10 +111,18 @@ describe('browser-driver-manager', () => {
       sinon.assert.calledWith(consoleLogStub, mockVersion);
       consoleLogStub.restore();
     });
-    it('errors if no environment file exists', async () => {
-      await expect(which()).to.be.rejectedWith(
-        'No environment file exists. Please install first'
-      );
+    describe('errors', () => {
+      it('if no environment file exists', async () => {
+        await expect(version()).to.be.rejectedWith(
+          'No environment file exists. Please install first'
+        );
+      });
+      it('if the environment file does not contain a version', async () => {
+        await makeEnvFile(noVersionEnvContents);
+        await expect(version()).to.be.rejectedWith(
+          'No version found in the environment file.'
+        );
+      });
     });
   });
   describe('install', () => {
