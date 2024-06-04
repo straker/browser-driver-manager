@@ -116,8 +116,9 @@ async function which() {
 
 /**
  * Read the installed version from the environment file.
- * @returns {string|null} - The version if one exists.
+ * @returns {string|null} - The version if one exists. Null if errors are suppressed and no valid version exists.
  * @throws {Error} - Environment file must exist.
+ * @throws {Error} - Environment file must have valid version.
  */
 async function getVersion(suppressErrors = false) {
   const pattern = /^VERSION="([\d.]+)"$/m;
