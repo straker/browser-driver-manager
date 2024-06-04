@@ -76,23 +76,18 @@ async function installBrowser(cacheDir, browser, buildId, options) {
  */
 async function setEnv({ chromePath, chromedriverPath, version }) {
   console.log('Setting env CHROME/CHROMEDRIVER_TEST_PATH/VERSION');
-
+  const envPath = path.resolve(getBDMCacheDir(), '.env');
   try {
     await fsPromises.writeFile(
-      path.resolve(getBDMCacheDir(), '.env'),
+      envPath,
       `CHROME_TEST_PATH="${chromePath}"${os.EOL}CHROMEDRIVER_TEST_PATH="${chromedriverPath}"${os.EOL}VERSION="${version}"${os.EOL}`
     );
     console.log('CHROME_TEST_PATH is set in', chromePath);
     console.log('CHROMEDRIVER_TEST_PATH is set in', chromedriverPath);
     console.log('VERSION:', version);
   } catch (e) {
-    // TODO: this may not be a permissions issue; go through the possible errors and figure out what to recommend
-    // TODO: write tests once that's done
     throw new ErrorWithSuggestion(
-      `Error setting CHROME/CHROMEDRIVER_TEST_PATH/VERSION. Unable to write to file ${path.resolve(
-        getBDMCacheDir(),
-        '.env'
-      )}.`,
+      `Error setting CHROME/CHROMEDRIVER_TEST_PATH/VERSION. Ensure that the environment file at ${envPath} is writable.`,
       e
     );
   }
@@ -133,7 +128,6 @@ async function getVersion(suppressErrors = false) {
   const pattern = /^VERSION="([\d.]+)"$/m;
   const env = await getEnv();
 
-  // TODO: write  a test for this
   if (!env) {
     if (suppressErrors) {
       return null;
@@ -144,7 +138,6 @@ async function getVersion(suppressErrors = false) {
   // Search for the pattern in the file path
   const match = env.match(pattern);
 
-  // TODO: write  a test for this
   if (!match || match.length < 2) {
     if (suppressErrors) {
       return null;
@@ -234,23 +227,24 @@ async function install(browserId, options) {
           cacheDir
         });
       } catch (e) {
-        // TODO: this may not be a permissions issue; go through the possible errors and figure out what to recommend
-        // TODO: write tests once that's done
         throw new ErrorWithSuggestion(
-          `Unable to uninstall ${browser}. Please check permissions.`,
+          `Unable to uninstall ${browser}. Ensure that executable in ${cacheDir} can be removed and try again.`,
           e
         );
       }
     }
   }
+
+  const envPath = path.resolve(cacheDir, '.env');
   try {
-    // Remove the existing .env. setEnv creates it again later
+    // Remove the existing .env, if it exists. setEnv creates it again later
     // Should execution stop beforehand, .env will not be in a bad (empty) state
-    await fsPromises.rm(path.resolve(cacheDir, '.env'), { force: true });
+    await fsPromises.rm(envPath, { force: true });
   } catch (e) {
-    // TODO: this may not be a permissions issue; go through the possible errors and figure out what to recommend
-    // TODO: write tests once that's done
-    throw new ErrorWithSuggestion(`Unable to remove .env from ${cacheDir}.`, e);
+    throw new ErrorWithSuggestion(
+      `Unable to remove .env from ${cacheDir}. Ensure the file can be removed and try again.`,
+      e
+    );
   }
 
   // Create a cache directory if it does not exist on the user's home directory, or if it's been removed above
