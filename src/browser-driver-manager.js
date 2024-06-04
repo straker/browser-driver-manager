@@ -9,6 +9,12 @@ const { resolveBuildId, detectBrowserPlatform, Browser, uninstall } =
   puppeteerBrowsers;
 const { capitalize } = require('./utils');
 
+class ErrorWithSuggestion extends Error {
+  constructor(suggestion, originalError) {
+    super(`${suggestion} The original error was: ${originalError.message}`);
+  }
+}
+
 /**
  * Get the cache directory.
  * @returns {string} - Path to the cache directory.
@@ -80,7 +86,15 @@ async function setEnv({ chromePath, chromedriverPath, version }) {
     console.log('CHROMEDRIVER_TEST_PATH is set in', chromedriverPath);
     console.log('VERSION:', version);
   } catch (e) {
-    throw new Error('Error setting CHROME/CHROMEDRIVER_TEST_PATH/VERSION');
+    // TODO: this may not be a permissions issue; go through the possible errors and figure out what to recommend
+    // TODO: write tests once that's done
+    throw new ErrorWithSuggestion(
+      `Error setting CHROME/CHROMEDRIVER_TEST_PATH/VERSION. Unable to write to file ${path.resolve(
+        getBDMCacheDir(),
+        '.env'
+      )}.`,
+      e
+    );
   }
 }
 
@@ -113,15 +127,34 @@ async function which() {
 /**
  * Read the installed version from the environment file.
  * @returns {string|null} - The version if one exists.
+ * @throws {Error} - Environment file must exist.
  */
-async function getVersion() {
+async function getVersion(suppressErrors = false) {
   const pattern = /^VERSION="([\d.]+)"$/m;
   const env = await getEnv();
 
-  // Search for the pattern in the file path
-  const match = env?.match(pattern);
+  // TODO: write  a test for this
+  if (!env) {
+    if (suppressErrors) {
+      return null;
+    }
+    throw new Error('No environment file exists. Please install first');
+  }
 
-  const version = match?.[1];
+  // Search for the pattern in the file path
+  const match = env.match(pattern);
+
+  // TODO: write  a test for this
+  if (!match || match.length < 2) {
+    if (suppressErrors) {
+      return null;
+    }
+    throw new Error(
+      `No version found in the environment file. Either remove the environment file and reinstall, or add a line 'VERSION={YOUR_INSTALLED_VERSION} to it.`
+    );
+  }
+
+  const version = match[1];
   return version;
 }
 
@@ -147,8 +180,8 @@ async function version() {
  * @throws {Error} Browser platform must be detectable
  * @throws {Error} Build ID must resolve
  * @throws {Error} Browser must be uninstallable when one is already installed
- * @throws {Error} Environment file must be removable when on already exists
  * @throws {Error} Version of chrome and chromedriver must be findable
+ * @throws {Error} Environment file must be removable when one already exists
  * @returns
  */
 async function install(browserId, options) {
@@ -165,7 +198,9 @@ async function install(browserId, options) {
   const platform = detectBrowserPlatform();
 
   if (!platform) {
-    throw new Error('Unable to detect browser platform');
+    throw new Error(
+      `Unable to detect a valid platform for ${process.platform} ${process.arch}. Darwin (MacOS, iOS, etc.), Windows, and Linux platforms are supported.`
+    );
   }
 
   // Get the version to install of both Chrome and Chromedriver
@@ -177,8 +212,9 @@ async function install(browserId, options) {
   }
 
   // Get any currently installed version
-  const currentVersion = getVersion();
+  const currentVersion = await getVersion(true);
   const cacheDir = getBDMCacheDir();
+
   if (currentVersion) {
     if (currentVersion === buildId) {
       console.log(
@@ -190,68 +226,62 @@ async function install(browserId, options) {
       `Chrome and Chromedriver versions ${currentVersion} are currently installed. Overwriting.`
     );
     // Uninstall existing installs
-    ['chrome', 'chromedriver'].map(async browser => {
+    for (const browser of ['chrome', 'chromedriver']) {
       try {
         await uninstall({
           browser,
           buildId: currentVersion,
           cacheDir
         });
-        fsPromises.rmdir(path, { recursive: true, force: true });
       } catch (e) {
-        throw new Error(`Unable to remove ${browser}.`);
+        // TODO: this may not be a permissions issue; go through the possible errors and figure out what to recommend
+        // TODO: write tests once that's done
+        throw new ErrorWithSuggestion(
+          `Unable to uninstall ${browser}. Please check permissions.`,
+          e
+        );
       }
-    });
-    try {
-      // Remove the existing .env. setEnv creates it again later
-      // Should execution stop beforehand, .env will not be in a bad (empty) state
-      await fsPromises.rm(path.resolve(cacheDir, '.env'));
-    } catch (e) {
-      throw new Error(`Unable to remove .env from ${cacheDir}.`);
     }
+  }
+  try {
+    // Remove the existing .env. setEnv creates it again later
+    // Should execution stop beforehand, .env will not be in a bad (empty) state
+    await fsPromises.rm(path.resolve(cacheDir, '.env'), { force: true });
+  } catch (e) {
+    // TODO: this may not be a permissions issue; go through the possible errors and figure out what to recommend
+    // TODO: write tests once that's done
+    throw new ErrorWithSuggestion(`Unable to remove .env from ${cacheDir}.`, e);
   }
 
   // Create a cache directory if it does not exist on the user's home directory, or if it's been removed above
   // This will be where environment variables will be stored for the tests
   // since it is a consistent location across different platforms
-  try {
-    await fsPromises.mkdir(cacheDir, { recursive: true });
-  } catch {
-    console.log(`${cacheDir} already exists`);
-  }
+  await fsPromises.mkdir(cacheDir, { recursive: true });
 
-  let installedChrome, installedChromedriver;
-  try {
-    installedChrome = await installBrowser(
-      cacheDir,
-      Browser.CHROME,
-      buildId,
-      options
-    );
-  } catch (e) {
-    e.message = /status code 404/.test(e.message)
-      ? `Unable to find version ${buildId} of Chrome`
-      : e.message;
-    throw new Error(e);
-  }
+  let installedBrowsers = {};
 
-  try {
-    installedChromedriver = await installBrowser(
-      cacheDir,
-      Browser.CHROMEDRIVER,
-      buildId,
-      options
-    );
-  } catch (e) {
-    e.message = /status code 404/.test(e.message)
-      ? `Unable to find version ${buildId} of Chromedriver`
-      : e.message;
-    throw new Error(e);
+  for (const installedBrowser of ['CHROME', 'CHROMEDRIVER']) {
+    try {
+      installedBrowsers[installedBrowser] = await installBrowser(
+        cacheDir,
+        Browser[installedBrowser],
+        buildId,
+        options
+      );
+    } catch (e) {
+      const error = /status code 404/.test(e.message)
+        ? new ErrorWithSuggestion(
+            `Tried to install version ${buildId} of ${installedBrowser.toLowerCase()}, but it couldn't be found. Please refer to the Chrome for Testing availability dashboard for available versions: https://googlechromelabs.github.io/chrome-for-testing/.`,
+            e
+          )
+        : e;
+      throw error;
+    }
   }
 
   await setEnv({
-    chromePath: installedChrome.executablePath,
-    chromedriverPath: installedChromedriver.executablePath,
+    chromePath: installedBrowsers['CHROME'].executablePath,
+    chromedriverPath: installedBrowsers['CHROMEDRIVER'].executablePath,
     version: buildId
   });
 }
