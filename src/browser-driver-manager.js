@@ -7,7 +7,6 @@ const puppeteerBrowsers = require('@puppeteer/browsers');
 const puppeteerInstall = puppeteerBrowsers.install;
 const { resolveBuildId, detectBrowserPlatform, Browser, uninstall } =
   puppeteerBrowsers;
-const { capitalize } = require('./utils');
 
 class ErrorWithSuggestion extends Error {
   constructor(suggestion, originalError) {
@@ -38,7 +37,7 @@ async function installBrowser(cacheDir, browser, buildId, options) {
     if (!options?.verbose) {
       return;
     }
-    const browserTitle = capitalize(browser);
+    const browserTitle = browser[0].toUpperCase() + browser.slice(1);
     let progressMessage = `Downloading ${browserTitle}: `;
     if (downloadedBytes < totalBytes) {
       const cursorDisablingString = '\x1B[?25l';
