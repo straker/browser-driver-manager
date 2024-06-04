@@ -52,18 +52,14 @@ async function installBrowser(cacheDir, browser, buildId, options) {
     process.stdout.write(progressMessage);
   };
 
-  try {
-    const installedBrowser = await puppeteerInstall({
-      cacheDir,
-      browser,
-      buildId,
-      downloadProgressCallback
-    });
+  const installedBrowser = await puppeteerInstall({
+    cacheDir,
+    browser,
+    buildId,
+    downloadProgressCallback
+  });
 
-    return installedBrowser;
-  } catch (e) {
-    throw new Error(e);
-  }
+  return installedBrowser;
 }
 
 /**
@@ -197,12 +193,7 @@ async function install(browserId, options) {
   }
 
   // Get the version to install of both Chrome and Chromedriver
-  let buildId;
-  try {
-    buildId = await resolveBuildId(Browser.CHROME, platform, version);
-  } catch (e) {
-    throw new Error(e);
-  }
+  const buildId = await resolveBuildId(Browser.CHROME, platform, version);
 
   // Get any currently installed version
   const currentVersion = await getVersion(true);
@@ -228,7 +219,7 @@ async function install(browserId, options) {
         });
       } catch (e) {
         throw new ErrorWithSuggestion(
-          `Unable to uninstall ${browser}. Ensure that executable in ${cacheDir} can be removed and try again.`,
+          `Unable to uninstall ${browser}. Ensure that the executable in ${cacheDir} can be removed and try again.`,
           e
         );
       }
@@ -250,7 +241,14 @@ async function install(browserId, options) {
   // Create a cache directory if it does not exist on the user's home directory, or if it's been removed above
   // This will be where environment variables will be stored for the tests
   // since it is a consistent location across different platforms
-  await fsPromises.mkdir(cacheDir, { recursive: true });
+  try {
+    await fsPromises.mkdir(cacheDir, { recursive: true });
+  } catch (e) {
+    throw new ErrorWithSuggestion(
+      `Unable to create the cache directory ${cacheDir}. Ensure the directory can be created and try again.`,
+      e
+    );
+  }
 
   let installedBrowsers = {};
 

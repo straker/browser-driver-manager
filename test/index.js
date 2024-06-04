@@ -4,7 +4,6 @@ const path = require('path');
 const fsPromises = require('fs').promises;
 const os = require('os');
 const chai = require('chai');
-const { capitalize } = require('../src/utils');
 const chaiAsPromised = require('chai-as-promised');
 const expect = chai.expect;
 chai.use(chaiAsPromised);
@@ -86,30 +85,40 @@ const makeEnvFile = async (contents = envContents) => {
   await fsPromises.writeFile(envPath, contents);
 };
 
+// Wrap console.log stub only as needed
+// Makes debugging more intuitive or suppresses logging in test results
+let consoleLogStub;
+
+const wrapConsoleLogStub = async fn => {
+  consoleLogStub = sinon.stub(console, 'log');
+  await fn();
+  consoleLogStub.restore();
+};
+
 describe('browser-driver-manager', () => {
   describe('which', async () => {
     it('logs the locations of chrome and chromedriver if they exist', async () => {
       await makeEnvFile();
-      const consoleLogStub = sinon.stub(console, 'log');
-      await which();
-
-      sinon.assert.calledWith(consoleLogStub, envContents);
-      consoleLogStub.restore();
+      wrapConsoleLogStub(async () => {
+        await which();
+        sinon.assert.calledWith(consoleLogStub, envContents);
+      });
     });
     it('errors if no environment file exists', async () => {
-      await expect(which()).to.be.rejectedWith(
-        'No environment file exists. Please install first'
-      );
+      wrapConsoleLogStub(async () => {
+        await expect(which()).to.be.rejectedWith(
+          'No environment file exists. Please install first'
+        );
+      });
     });
   });
   describe('version', () => {
     it('logs the version when a valid one exists', async () => {
       await makeEnvFile();
-      const consoleLogStub = sinon.stub(console, 'log');
-      await version();
-
-      sinon.assert.calledWith(consoleLogStub, mockVersion);
-      consoleLogStub.restore();
+      wrapConsoleLogStub(async () => {
+        await version();
+        sinon.assert.calledWith(consoleLogStub, mockVersion);
+      });
     });
     describe('errors', () => {
       it('if no environment file exists', async () => {
@@ -137,13 +146,17 @@ describe('browser-driver-manager', () => {
       buildId: sinon.match.string
     });
     it('calls the Puppeteer/browser installer when given a valid browser', async () => {
-      await install(browser);
+      await wrapConsoleLogStub(async () => {
+        await install(browser);
+      });
       sinon.assert.calledWith(mockInstall, chromeArgs);
       sinon.assert.calledWith(mockInstall, chromedriverArgs);
     });
     describe('creates', () => {
       it("the cache directory if it doesn't already exist", async () => {
-        await install(browser);
+        await wrapConsoleLogStub(async () => {
+          await install(browser);
+        });
         await expect(fsPromises.access(MOCK_BDM_CACHE_DIR)).to.be.fulfilled;
       });
 
@@ -156,14 +169,14 @@ describe('browser-driver-manager', () => {
           .withArgs(chromedriverArgs)
           .returns({ executablePath: chromedriverTestPath });
 
-        const consoleLogStub = sinon.stub(console, 'log');
-        await install('chrome');
+        await wrapConsoleLogStub(async () => {
+          await install('chrome');
 
-        sinon.assert.calledWith(
-          consoleLogStub,
-          'Setting env CHROME/CHROMEDRIVER_TEST_PATH/VERSION'
-        );
-        consoleLogStub.restore();
+          sinon.assert.calledWith(
+            consoleLogStub,
+            'Setting env CHROME/CHROMEDRIVER_TEST_PATH/VERSION'
+          );
+        });
         await expect(fsPromises.readFile(envPath, 'utf-8')).to.be.fulfilled;
         const env = await fsPromises.readFile(envPath, 'utf-8');
         expect(env.match(chromeTestPath)).to.not.be.null;
@@ -172,15 +185,13 @@ describe('browser-driver-manager', () => {
       });
     });
     describe('errors when', () => {
-      beforeEach(setup);
-      afterEach(teardown);
       it('an unsupported browser is given', async () => {
         await expect(install('firefox')).to.be.rejectedWith(
           'The selected browser, firefox, could not be installed. Currently, only "chrome" is supported.'
         );
       });
 
-      it("the platform can't be detected", async () => {
+      it('detectBrowserPlatform returns undefined', async () => {
         mockDetectBrowserPlatform.returns(undefined);
         await expect(install(browser)).to.be.rejectedWith(
           'Unable to detect a valid platform for'
@@ -189,9 +200,11 @@ describe('browser-driver-manager', () => {
 
       it('fsPromises.writeFile rejects', async () => {
         const fsWriteFileStub = sinon.stub(fsPromises, 'writeFile').rejects();
-        await expect(install(browser)).to.be.rejectedWith(
-          'Error setting CHROME/CHROMEDRIVER_TEST_PATH/VERSION'
-        );
+        await wrapConsoleLogStub(async () => {
+          await expect(install(browser)).to.be.rejectedWith(
+            'Error setting CHROME/CHROMEDRIVER_TEST_PATH/VERSION'
+          );
+        });
         fsWriteFileStub.restore();
       });
 
@@ -203,8 +216,8 @@ describe('browser-driver-manager', () => {
         fsRmStub.restore();
       });
 
-      it('an invalid chrome version is provided', async () => {
-        mockResolveBuildId.throws('invalid version');
+      it('resolveBuildId throws', async () => {
+        mockResolveBuildId.throws(new Error('invalid version'));
         await expect(install('chrome@broken')).to.be.rejectedWith(
           'invalid version'
         );
@@ -212,7 +225,7 @@ describe('browser-driver-manager', () => {
       });
 
       const browserInstallFailures = browser => {
-        describe(`installing ${browser} fails with`, async () => {
+        describe(`installing ${browser} throws`, async () => {
           [
             {
               error: 'status code 404',
@@ -232,7 +245,7 @@ describe('browser-driver-manager', () => {
                     buildId: mockVersion
                   })
                 )
-                .throws(error);
+                .throws(new Error(error));
               await expect(install(browser)).to.be.rejectedWith(message);
             });
           });
@@ -246,33 +259,33 @@ describe('browser-driver-manager', () => {
 
     describe('called twice', () => {
       it('does not repeat installation if the version is already installed', async () => {
-        const consoleLogStub = sinon.stub(console, 'log');
-        await install(browser);
-        await install(browser);
+        wrapConsoleLogStub(async () => {
+          await install(browser);
+          await install(browser);
 
-        sinon.assert.calledWith(
-          consoleLogStub,
-          `Chrome and Chromedriver versions ${mockVersion} are already installed. Skipping installation.`
-        );
-        sinon.assert.calledTwice(mockInstall);
-        await which();
+          sinon.assert.calledWith(
+            consoleLogStub,
+            `Chrome and Chromedriver versions ${mockVersion} are already installed. Skipping installation.`
+          );
+          sinon.assert.calledTwice(mockInstall);
+          await which();
 
-        sinon.assert.calledWith(consoleLogStub, sinon.match(mockVersion));
-        consoleLogStub.restore();
+          sinon.assert.calledWith(consoleLogStub, sinon.match(mockVersion));
+        });
       });
       describe('when the given version differs from the previous version', () => {
         it(`logs the currently installed version and that we're overwriting`, async () => {
-          const consoleLogStub = sinon.stub(console, 'log');
-          await install(browser);
-          mockResolveBuildId.returns(mockOverwriteVersion);
-          await install(browser);
-          sinon.assert.calledWith(
-            consoleLogStub,
-            sinon.match(
-              `Chrome and Chromedriver versions ${mockVersion} are currently installed. Overwriting.`
-            )
-          );
-          consoleLogStub.restore();
+          wrapConsoleLogStub(async () => {
+            await install(browser);
+            mockResolveBuildId.returns(mockOverwriteVersion);
+            await install(browser);
+            sinon.assert.calledWith(
+              consoleLogStub,
+              sinon.match(
+                `Chrome and Chromedriver versions ${mockVersion} are currently installed. Overwriting.`
+              )
+            );
+          });
         });
         describe('uninstalls the previous version of', () => {
           ['chrome', 'chromedriver'].forEach(browser => {
@@ -307,13 +320,13 @@ describe('browser-driver-manager', () => {
           });
         });
         it('logs the correct current version after installation', async () => {
-          const consoleLogStub = sinon.stub(console, 'log');
-          await install(browser);
-          mockResolveBuildId.returns(mockOverwriteVersion);
-          await install(browser);
-          await version();
-          sinon.assert.calledWith(consoleLogStub, mockOverwriteVersion);
-          consoleLogStub.restore();
+          wrapConsoleLogStub(async () => {
+            await install(browser);
+            mockResolveBuildId.returns(mockOverwriteVersion);
+            await install(browser);
+            await version();
+            sinon.assert.calledWith(consoleLogStub, mockOverwriteVersion);
+          });
         });
       });
     });
