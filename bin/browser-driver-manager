@@ -1,5 +1,30 @@
 #!/usr/bin/env node
+const { install, version, which } = require('../src/browser-driver-manager.js');
+const { Command } = require('commander');
+const { version: pkgVersion } = require('../package.json');
 
-const browserDriverManager = require('../src/browser-driver-manager.js');
+const program = new Command();
 
-browserDriverManager(process.argv.slice(2));
+program.version(pkgVersion, '-v, --version');
+
+program.command('which')
+  .description('displays the locations of the installed browser and driver')
+  .action(which);
+program.command('version')
+  .description('displays the version of the installed browser and driver')
+  .action(version);
+program.command('install')
+  .description('installs browsers and drivers')
+  .argument('<browser>', 'the browser and driver to install. Use "chrome" to install Chrome and Chromedriver')
+  .option('--verbose', 'display additional information about the download process.')
+  .action(install);
+
+program.addHelpText('after', `
+
+Examples:
+  browser-driver-manager install chrome
+  browser-driver-manager install chrome@beta
+  browser-driver-manager version
+  browser-driver-manager which`)
+
+program.parse();

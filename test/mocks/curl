@@ -1,5 +1,0 @@
-#! /bin/bash
-
-# Bash file to mock curl responses for testing
-assetDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-$assetDir/mock-http.sh "$@"

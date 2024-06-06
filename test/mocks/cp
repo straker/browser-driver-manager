@@ -1,5 +1,0 @@
-#! /bin/bash
-
-assetDir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-
-echo "cp $@" >> $assetDir/mock-log-file.txt
