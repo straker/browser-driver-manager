@@ -75,11 +75,11 @@ async function setEnv({ chromePath, chromedriverPath, version }) {
   try {
     await fsPromises.writeFile(
       envPath,
-      `CHROME_TEST_PATH="${chromePath}"${os.EOL}CHROMEDRIVER_TEST_PATH="${chromedriverPath}"${os.EOL}VERSION="${version}"${os.EOL}`
+      `CHROME_TEST_PATH="${chromePath}"${os.EOL}CHROMEDRIVER_TEST_PATH="${chromedriverPath}"${os.EOL}CHROME_TEST_VERSION="${version}"${os.EOL}`
     );
-    console.log('CHROME_TEST_PATH is set in', chromePath);
-    console.log('CHROMEDRIVER_TEST_PATH is set in', chromedriverPath);
-    console.log('VERSION:', version);
+    console.log(
+      `CHROME_TEST_PATH="${chromePath}"${os.EOL}CHROMEDRIVER_TEST_PATH="${chromedriverPath}"${os.EOL}CHROME_TEST_VERSION="${version}"${os.EOL}`
+    );
   } catch (e) {
     throw new ErrorWithSuggestion(
       `Error setting CHROME/CHROMEDRIVER_TEST_PATH/VERSION. Ensure that the environment file at ${envPath} is writable.`,
@@ -121,7 +121,7 @@ async function which() {
  * @throws {Error} - Environment file must have valid version.
  */
 async function getVersion(suppressErrors = false) {
-  const pattern = /^VERSION="([\d.]+)"$/m;
+  const pattern = /^CHROME_TEST_VERSION="([\d.]+)"$/m;
   const env = await getEnv();
 
   if (!env) {
@@ -139,7 +139,7 @@ async function getVersion(suppressErrors = false) {
       return null;
     }
     throw new Error(
-      `No version found in the environment file. Either remove the environment file and reinstall, or add a line 'VERSION={YOUR_INSTALLED_VERSION} to it.`
+      `No version found in the environment file. Either remove the environment file and reinstall, or add a line 'CHROME_TEST_VERSION={YOUR_INSTALLED_VERSION} to it.`
     );
   }
 

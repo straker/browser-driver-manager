@@ -29,7 +29,7 @@ So instead you decided to pin to the `@latest` tag. This works great as now both
 
 This is why this package exists. It will help keep the versions of Chrome and ChromeDriver in-sync so that your continuous integration system tests don't fail due to ChromeDriver versions. 
 
-So now instead of relying on pinning, you can ask the system which version of Chrome is installed and always get the version of ChromeDriver that matches. This will even work for Chrome channels that are not just Stable (i.e. Beta, Dev, and Canary).
+So now instead of relying on pinning, you can install the desired version of Chrome and Chromedriver. This will even work for Chrome channels that are not just Stable (i.e. Beta, Dev, and Canary).
 
 Here's an example of doing just that in an npm script.
 
@@ -46,9 +46,43 @@ If you wanted to install Chrome Beta and its associated driver:
 ```json
 {
   "scripts": {
-    "install:chromedriver": "browser-driver-manager install chrome@beta"
+    "install:chrome": "browser-driver-manager install chrome@beta"
   }
 }
+```
+
+Once installed, a directory is created in your home directory called `.browser-driver-manager`. The directory will contain a `.env` file which will list the install path of both Chrome and Chromedriver under `CHROME_TEST_PATH` and `CHROMEDRIVER_TEST_PATH` respectively. 
+
+```
+# ~/.browser-driver-manager/.env
+CHROME_TEST_PATH=".browser-driver-manager/chrome/mac_arm-125.0.6422.141/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+CHROMEDRIVER_TEST_PATH=".browser-driver-manager/chromedriver/mac_arm-125.0.6422.141/chromedriver-mac-arm64/chromedriver"
+```
+
+To use the Chrome or Chromedriver binaries, you'll have to read the contents of the file and grab the path to the desired path. For example, using [dotenv](https://www.npmjs.com/package/dotenv) you can do the following:
+
+```js
+require('dotenv').config({ path: '~/.browser-driver-manager/.env' })
+```
+
+## Migration from v1 to v2
+
+V1 use to detect the version of Chrome installed on the system and install the corresponding version of the [chromedriver npm package](https://www.npmjs.com/package/chromedriver). However this had problems as the chromedriver package wasn't always up-to-date with the latest version so when Chrome updated to the next version, the chromedriver package could lag behind and still cause out-of-sync issues. Additionally the chromedriver package didn't always have the latest versions of non-stable channels so asking for Chrome Canary wasn't always reliable.
+
+V2 uses the newly released [Chrome for Testing](https://developer.chrome.com/blog/chrome-for-testing) to manage Chrome. This enables both installing specific versions of Chrome and fixes the previous chromedriver package issue. V2 utilizes the [`puppeteer/browser`](https://pptr.dev/browsers-api) script to manage the installation of Chrome and Chromedriver as it can handle downloading the binaries (and the multiple changes to the chromedriver download URL). This means that v2 no longer uses the chromedriver npm package to get chromedriver.
+
+This means in v2 you'll need to grab the Chromedriver path from the `~/.browser-driver-manager/.env` file and not from the chromedriver npm package. Additionally, you'll need to grab the Chrome path pass the path to any browser driver, such as Webdriver.
+
+Here's an example of grabbing the Chromedriver path in v1 and the change for v2.
+
+```js
+// v1
+const chromedriver = require('chromedriver');
+console.log(chromedriver.path);
+
+// v2
+require('dotenv').config({ path: '.browser-driver-manager/.env' })
+console.log(process.env.CHROMEDRIVER_TEST_PATH);
 ```
 
 ## Supported Platforms and Browsers
@@ -57,11 +91,7 @@ MacOS, Linux, and Windows platforms, and Chrome browser and drivers are supporte
 
 ## System Requirements
 
-Node is required to run commands.
-
-Install dependencies with
-
-`npm install`
+Node is required to run the commands.
 
 ## Commands and Options
 
@@ -77,19 +107,22 @@ Install dependencies with
     # Install latest Chrome Beta and matching Chromedriver
     browser-driver-manager install chrome@beta
 
+    # Install ChromeDriver version 97 and matching Chromedriver
+    browser-driver-manager install chrome@97
+
 - **version:** 
     Get the installed version of the browser or driver.
 
     ```bash
     # Get installed Chrome and Chromedriver versions
-    browser-driver-manager version
+    browser-driver-manager version chrome
 
 - **which:** 
     Get the installed location of the browser and driver.
 
     ```bash
     # Get installed Chrome and Chromedriver locations
-    browser-driver-manager which
+    browser-driver-manager which chrome
     ```
 
 ### Options

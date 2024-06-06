@@ -19,7 +19,7 @@ const MOCK_BDM_CACHE_DIR = path.resolve(
 const envPath = path.resolve(MOCK_BDM_CACHE_DIR, '.env');
 const chromeTestPath = `${MOCK_BDM_CACHE_DIR}/chrome/os_arch-${mockVersion}/chrome`;
 const chromedriverTestPath = `${MOCK_BDM_CACHE_DIR}/chromedriver/os_arch-${mockVersion}/chromedriver`;
-const envContents = `CHROME_TEST_PATH="${chromeTestPath}"${os.EOL}CHROMEDRIVER_TEST_PATH="${chromedriverTestPath}"${os.EOL}VERSION="${mockVersion}"`;
+const envContents = `CHROME_TEST_PATH="${chromeTestPath}"${os.EOL}CHROMEDRIVER_TEST_PATH="${chromedriverTestPath}"${os.EOL}CHROME_TEST_VERSION="${mockVersion}"`;
 const noVersionEnvContents = `CHROME_TEST_PATH="${chromeTestPath}"${os.EOL}CHROMEDRIVER_TEST_PATH="${chromedriverTestPath}"${os.EOL}"`;
 
 const mockResolveBuildId = sinon.stub();
@@ -91,8 +91,11 @@ let consoleLogStub;
 
 const wrapConsoleLogStub = async fn => {
   consoleLogStub = sinon.stub(console, 'log');
-  await fn();
-  consoleLogStub.restore();
+  try {
+    await fn();
+  } finally {
+    consoleLogStub.restore();
+  }
 };
 
 describe('browser-driver-manager', () => {
