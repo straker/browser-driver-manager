@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 const { install, version, which } = require('../src/browser-driver-manager.js');
 const { Command } = require('commander');
+const { version: pkgVersion } = require('../package.json');
 
 const program = new Command();
+
+program.version(pkgVersion, '-v, --version');
 
 program.command('which')
   .description('displays the locations of the installed browser and driver')
