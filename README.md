@@ -71,7 +71,7 @@ V1 use to detect the version of Chrome installed on the system and install the c
 
 V2 uses the newly released [Chrome for Testing](https://developer.chrome.com/blog/chrome-for-testing) to manage Chrome. This enables both installing specific versions of Chrome and fixes the previous chromedriver package issue. V2 utilizes the [`puppeteer/browser`](https://pptr.dev/browsers-api) script to manage the installation of Chrome and Chromedriver as it can handle downloading the binaries (and the multiple changes to the chromedriver download URL). This means that v2 no longer uses the chromedriver npm package to get chromedriver.
 
-This means in v2 you'll need to grab the Chromedriver path from the `~/.browser-driver-manager/.env` file and not from the chromedriver npm package. Additionally, you'll need to grab the Chrome path pass the path to any browser driver, such as Webdriver.
+This means in v2 you'll need to grab the Chromedriver path from the `~/.browser-driver-manager/.env` file and not from the chromedriver npm package. Additionally, if using a browser driver, such as Webdriver, you'll need to grab the Chrome path and pass it to the browser driver.
 
 Here's an example of grabbing the Chromedriver path in v1 and the change for v2.
 
