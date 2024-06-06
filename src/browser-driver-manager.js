@@ -209,21 +209,6 @@ async function install(browserId, options) {
     console.log(
       `Chrome and Chromedriver versions ${currentVersion} are currently installed. Overwriting.`
     );
-    // Uninstall existing installs
-    for (const browser of ['chrome', 'chromedriver']) {
-      try {
-        await uninstall({
-          browser,
-          buildId: currentVersion,
-          cacheDir
-        });
-      } catch (e) {
-        throw new ErrorWithSuggestion(
-          `Unable to uninstall ${browser}. Ensure that the executable in ${cacheDir} can be removed and try again.`,
-          e
-        );
-      }
-    }
   }
 
   const envPath = path.resolve(cacheDir, '.env');
@@ -276,6 +261,24 @@ async function install(browserId, options) {
     chromedriverPath: installedBrowsers['CHROMEDRIVER'].executablePath,
     version: buildId
   });
+
+  // Uninstall previous versions last so potential failure doesn't prevent installation
+  if (currentVersion) {
+    for (const browser of ['chrome', 'chromedriver']) {
+      try {
+        await uninstall({
+          browser,
+          buildId: currentVersion,
+          cacheDir
+        });
+      } catch (e) {
+        throw new ErrorWithSuggestion(
+          `Unable to uninstall ${browser} version ${currentVersion}. Ensure that the executable in ${cacheDir} can be removed and try again.`,
+          e
+        );
+      }
+    }
+  }
 }
 
 module.exports = { install, version, which };
