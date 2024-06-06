@@ -104,6 +104,7 @@ describe('browser-driver-manager', () => {
         sinon.assert.calledWith(consoleLogStub, envContents);
       });
     });
+
     it('errors if no environment file exists', async () => {
       await wrapConsoleLogStub(async () => {
         await expect(which()).to.be.rejectedWith(
@@ -112,6 +113,7 @@ describe('browser-driver-manager', () => {
       });
     });
   });
+
   describe('version', () => {
     it('logs the version when a valid one exists', async () => {
       await makeEnvFile();
@@ -120,12 +122,14 @@ describe('browser-driver-manager', () => {
         sinon.assert.calledWith(consoleLogStub, mockVersion);
       });
     });
+
     describe('errors', () => {
       it('if no environment file exists', async () => {
         await expect(version()).to.be.rejectedWith(
           'No environment file exists. Please install first'
         );
       });
+
       it('if the environment file does not contain a version', async () => {
         await makeEnvFile(noVersionEnvContents);
         await expect(version()).to.be.rejectedWith(
@@ -134,6 +138,7 @@ describe('browser-driver-manager', () => {
       });
     });
   });
+
   describe('install', () => {
     const chromeArgs = sinon.match({
       cacheDir: sinon.match.string,
@@ -145,6 +150,7 @@ describe('browser-driver-manager', () => {
       browser: 'chromedriver',
       buildId: sinon.match.string
     });
+
     it('calls the Puppeteer/browser installer when given a valid browser', async () => {
       await wrapConsoleLogStub(async () => {
         await install(browser);
@@ -152,6 +158,55 @@ describe('browser-driver-manager', () => {
       sinon.assert.calledWith(mockInstall, chromeArgs);
       sinon.assert.calledWith(mockInstall, chromedriverArgs);
     });
+
+    it('uses "stable" when no version is passed', async () => {
+      await wrapConsoleLogStub(async () => {
+        await install('chrome');
+      });
+      sinon.assert.calledWith(
+        mockResolveBuildId,
+        sinon.match.string,
+        sinon.match.string,
+        'stable'
+      );
+    });
+
+    it('passes the version when using "@"', async () => {
+      await wrapConsoleLogStub(async () => {
+        await install('chrome@123');
+      });
+      sinon.assert.calledWith(
+        mockResolveBuildId,
+        sinon.match.string,
+        sinon.match.string,
+        '123'
+      );
+    });
+
+    it('passes the version when using "="', async () => {
+      await wrapConsoleLogStub(async () => {
+        await install('chrome=123');
+      });
+      sinon.assert.calledWith(
+        mockResolveBuildId,
+        sinon.match.string,
+        sinon.match.string,
+        '123'
+      );
+    });
+
+    it('uses "stable" when version is not formatted correctly', async () => {
+      await wrapConsoleLogStub(async () => {
+        await install('chrome^123');
+      });
+      sinon.assert.calledWith(
+        mockResolveBuildId,
+        sinon.match.string,
+        sinon.match.string,
+        'stable'
+      );
+    });
+
     describe('creates', () => {
       it("the cache directory if it doesn't already exist", async () => {
         await wrapConsoleLogStub(async () => {
@@ -184,6 +239,7 @@ describe('browser-driver-manager', () => {
         expect(env.match(mockVersion)).to.not.be.null;
       });
     });
+
     describe('errors when', () => {
       it('an unsupported browser is given', async () => {
         await expect(install('firefox')).to.be.rejectedWith(
@@ -273,6 +329,7 @@ describe('browser-driver-manager', () => {
           sinon.assert.calledWith(consoleLogStub, sinon.match(mockVersion));
         });
       });
+
       describe('when the given version differs from the previous version', () => {
         describe('and both are valid', async () => {
           it(`logs the currently installed version and that we're overwriting`, async () => {
@@ -288,6 +345,7 @@ describe('browser-driver-manager', () => {
               );
             });
           });
+
           describe('uninstalls the previous version of', () => {
             ['chrome', 'chromedriver'].forEach(browser => {
               it(browser, async () => {
@@ -306,6 +364,7 @@ describe('browser-driver-manager', () => {
               });
             });
           });
+
           describe('installs the new version of', () => {
             ['chrome', 'chromedriver'].forEach(browser => {
               it(browser, async () => {
@@ -324,6 +383,7 @@ describe('browser-driver-manager', () => {
               });
             });
           });
+
           it('logs the correct current version after installation', async () => {
             await wrapConsoleLogStub(async () => {
               await install(browser);
@@ -334,6 +394,7 @@ describe('browser-driver-manager', () => {
             });
           });
         });
+
         describe('with an invalid first version, and a valid second version', async () => {
           it('does not have an env file until the second installation', async () => {
             mockResolveBuildId.throws(new Error('invalid version'));
@@ -357,6 +418,7 @@ describe('browser-driver-manager', () => {
             });
           });
         });
+
         describe('with a valid first version, and an invalid second version', async () => {
           it('still has the first version after the second attempt', async () => {
             mockResolveBuildId.returns(mockVersion);
@@ -377,6 +439,7 @@ describe('browser-driver-manager', () => {
             });
           });
         });
+
         describe('with two invalid versions', async () => {
           it('has no environment file after either attempt', async () => {
             for (let i = 0; i < 2; i++) {
@@ -398,12 +461,14 @@ describe('browser-driver-manager', () => {
         });
       });
     });
+
     describe('does not show download progress when', () => {
       it('there are no options passed', () => {
         const downloadProgressCaller = ({ downloadProgressCallback }) => {
           downloadProgressCallback(1, 1);
           return { executablePath: chromeTestPath };
         };
+
         let { install } = proxyquire('../src/browser-driver-manager', {
           '@puppeteer/browsers': {
             ...puppeteerBrowserMocks,
@@ -423,6 +488,7 @@ describe('browser-driver-manager', () => {
           'Downloading Chrome'
         );
       });
+
       it('the verbose option is false', () => {
         const downloadProgressCaller = ({ downloadProgressCallback }) => {
           downloadProgressCallback(1, 1);
@@ -448,6 +514,7 @@ describe('browser-driver-manager', () => {
         );
       });
     });
+
     describe('when the verbose option is true', () => {
       it('writes the browser and download progress', async () => {
         const downloadProgressCaller = ({ downloadProgressCallback }) => {
@@ -471,6 +538,7 @@ describe('browser-driver-manager', () => {
           sinon.match(/Downloading Chrome.../)
         );
       });
+
       it('writes when the download is done', async () => {
         const downloadProgressCaller = ({ downloadProgressCallback }) => {
           downloadProgressCallback(100, 100);

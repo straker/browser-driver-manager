@@ -14,11 +14,9 @@
     "tmp"
   ],
   "scripts": {
-    "test": "npm run test:bash && npm run test:node",
-    "test:bash": "sudo test/index.sh",
-    "test:node": "mocha test/index.js",
+    "test": "mocha test/index.js",
     "eslint": "eslint src/*.js",
-    "prettier": "prettier --write *.js",
+    "prettier": "prettier --write **/*.js",
     "prepare": "husky install"
   },
   "repository": {

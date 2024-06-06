@@ -1,1 +1,0 @@
-Intentionally left empty to allow downloading browser and driver files to a temp directory. Git cannot commit empty directories so a file must exist in the directory in order for the directory to be committed.
