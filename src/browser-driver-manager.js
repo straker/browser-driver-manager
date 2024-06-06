@@ -174,7 +174,7 @@ async function version() {
  * @returns
  */
 async function install(browserId, options) {
-  const [browser, version = 'latest'] = browserId.split('@');
+  const [browser, version = 'stable'] = browserId.split('@');
 
   // Should support for other browsers be added, commander should handle this check.
   // With only one supported browser, this error message is more meaningful than commander's.
