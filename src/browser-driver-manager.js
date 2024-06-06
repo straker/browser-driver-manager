@@ -211,18 +211,6 @@ async function install(browserId, options) {
     );
   }
 
-  const envPath = path.resolve(cacheDir, '.env');
-  try {
-    // Remove the existing .env, if it exists. setEnv creates it again later
-    // Should execution stop beforehand, .env will not be in a bad (empty) state
-    await fsPromises.rm(envPath, { force: true });
-  } catch (e) {
-    throw new ErrorWithSuggestion(
-      `Unable to remove .env from ${cacheDir}. Ensure the file can be removed and try again.`,
-      e
-    );
-  }
-
   // Create a cache directory if it does not exist on the user's home directory, or if it's been removed above
   // This will be where environment variables will be stored for the tests
   // since it is a consistent location across different platforms
@@ -236,8 +224,9 @@ async function install(browserId, options) {
   }
 
   let installedBrowsers = {};
+  const browsers = ['CHROME', 'CHROMEDRIVER'];
 
-  for (const installedBrowser of ['CHROME', 'CHROMEDRIVER']) {
+  for (const installedBrowser of browsers) {
     try {
       installedBrowsers[installedBrowser] = await installBrowser(
         cacheDir,
@@ -256,6 +245,18 @@ async function install(browserId, options) {
     }
   }
 
+  const envPath = path.resolve(cacheDir, '.env');
+  try {
+    // Remove the existing .env, if it exists. setEnv creates it again later
+    // Should execution stop beforehand, .env will not be in a bad (empty) state
+    await fsPromises.rm(envPath, { force: true });
+  } catch (e) {
+    throw new ErrorWithSuggestion(
+      `Unable to remove .env from ${cacheDir}. Ensure the file can be removed and try again.`,
+      e
+    );
+  }
+
   await setEnv({
     chromePath: installedBrowsers['CHROME'].executablePath,
     chromedriverPath: installedBrowsers['CHROMEDRIVER'].executablePath,
@@ -264,10 +265,10 @@ async function install(browserId, options) {
 
   // Uninstall previous versions last so potential failure doesn't prevent installation
   if (currentVersion) {
-    for (const browser of ['chrome', 'chromedriver']) {
+    for (const browser of browsers) {
       try {
         await uninstall({
-          browser,
+          browser: Browser[browser],
           buildId: currentVersion,
           cacheDir
         });

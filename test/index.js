@@ -99,13 +99,13 @@ describe('browser-driver-manager', () => {
   describe('which', async () => {
     it('logs the locations of chrome and chromedriver if they exist', async () => {
       await makeEnvFile();
-      wrapConsoleLogStub(async () => {
+      await wrapConsoleLogStub(async () => {
         await which();
         sinon.assert.calledWith(consoleLogStub, envContents);
       });
     });
     it('errors if no environment file exists', async () => {
-      wrapConsoleLogStub(async () => {
+      await wrapConsoleLogStub(async () => {
         await expect(which()).to.be.rejectedWith(
           'No environment file exists. Please install first'
         );
@@ -115,7 +115,7 @@ describe('browser-driver-manager', () => {
   describe('version', () => {
     it('logs the version when a valid one exists', async () => {
       await makeEnvFile();
-      wrapConsoleLogStub(async () => {
+      await wrapConsoleLogStub(async () => {
         await version();
         sinon.assert.calledWith(consoleLogStub, mockVersion);
       });
@@ -259,7 +259,7 @@ describe('browser-driver-manager', () => {
 
     describe('called twice', () => {
       it('does not repeat installation if the version is already installed', async () => {
-        wrapConsoleLogStub(async () => {
+        await wrapConsoleLogStub(async () => {
           await install(browser);
           await install(browser);
 
@@ -274,58 +274,126 @@ describe('browser-driver-manager', () => {
         });
       });
       describe('when the given version differs from the previous version', () => {
-        it(`logs the currently installed version and that we're overwriting`, async () => {
-          wrapConsoleLogStub(async () => {
-            await install(browser);
-            mockResolveBuildId.returns(mockOverwriteVersion);
-            await install(browser);
-            sinon.assert.calledWith(
-              consoleLogStub,
-              sinon.match(
-                `Chrome and Chromedriver versions ${mockVersion} are currently installed. Overwriting.`
-              )
-            );
-          });
-        });
-        describe('uninstalls the previous version of', () => {
-          ['chrome', 'chromedriver'].forEach(browser => {
-            it(browser, async () => {
+        describe('and both are valid', async () => {
+          it(`logs the currently installed version and that we're overwriting`, async () => {
+            await wrapConsoleLogStub(async () => {
               await install(browser);
               mockResolveBuildId.returns(mockOverwriteVersion);
               await install(browser);
               sinon.assert.calledWith(
-                mockUninstall,
-                sinon.match({
-                  buildId: mockVersion,
-                  browser
-                })
+                consoleLogStub,
+                sinon.match(
+                  `Chrome and Chromedriver versions ${mockVersion} are currently installed. Overwriting.`
+                )
               );
             });
           });
-        });
-        describe('installs the new version of', () => {
-          ['chrome', 'chromedriver'].forEach(browser => {
-            it(browser, async () => {
+          describe('uninstalls the previous version of', () => {
+            ['chrome', 'chromedriver'].forEach(browser => {
+              it(browser, async () => {
+                await wrapConsoleLogStub(async () => {
+                  await install(browser);
+                  mockResolveBuildId.returns(mockOverwriteVersion);
+                  await install(browser);
+                  sinon.assert.calledWith(
+                    mockUninstall,
+                    sinon.match({
+                      buildId: mockVersion,
+                      browser
+                    })
+                  );
+                });
+              });
+            });
+          });
+          describe('installs the new version of', () => {
+            ['chrome', 'chromedriver'].forEach(browser => {
+              it(browser, async () => {
+                await wrapConsoleLogStub(async () => {
+                  await install(browser);
+                  mockResolveBuildId.returns(mockOverwriteVersion);
+                  await install(browser);
+                  sinon.assert.calledWith(
+                    mockInstall,
+                    sinon.match({
+                      buildId: mockOverwriteVersion,
+                      browser
+                    })
+                  );
+                });
+              });
+            });
+          });
+          it('logs the correct current version after installation', async () => {
+            await wrapConsoleLogStub(async () => {
               await install(browser);
               mockResolveBuildId.returns(mockOverwriteVersion);
               await install(browser);
-              sinon.assert.calledWith(
-                mockInstall,
-                sinon.match({
-                  buildId: mockOverwriteVersion,
-                  browser
-                })
-              );
+              await version();
+              sinon.assert.calledWith(consoleLogStub, mockOverwriteVersion);
             });
           });
         });
-        it('logs the correct current version after installation', async () => {
-          wrapConsoleLogStub(async () => {
-            await install(browser);
-            mockResolveBuildId.returns(mockOverwriteVersion);
-            await install(browser);
-            await version();
-            sinon.assert.calledWith(consoleLogStub, mockOverwriteVersion);
+        describe('with an invalid first version, and a valid second version', async () => {
+          it('does not have an env file until the second installation', async () => {
+            mockResolveBuildId.throws(new Error('invalid version'));
+            await wrapConsoleLogStub(async () => {
+              try {
+                await install(browser);
+              } catch (e) {
+                expect(e.message).to.contain('invalid version');
+              }
+              try {
+                await version();
+              } catch (e) {
+                expect(e.message).to.contain('No environment file exists.');
+              }
+            });
+            mockResolveBuildId.returns(mockVersion);
+            await wrapConsoleLogStub(async () => {
+              await install(browser);
+              await version();
+              sinon.assert.calledWith(consoleLogStub, mockVersion);
+            });
+          });
+        });
+        describe('with a valid first version, and an invalid second version', async () => {
+          it('still has the first version after the second attempt', async () => {
+            mockResolveBuildId.returns(mockVersion);
+            await wrapConsoleLogStub(async () => {
+              await install(browser);
+              await version();
+              sinon.assert.calledWith(consoleLogStub, mockVersion);
+            });
+            mockResolveBuildId.throws(new Error('invalid version'));
+            await wrapConsoleLogStub(async () => {
+              try {
+                await install(browser);
+              } catch (e) {
+                expect(e.message).to.contain('invalid version');
+              }
+              await version();
+              sinon.assert.calledWith(consoleLogStub, mockVersion);
+            });
+          });
+        });
+        describe('with two invalid versions', async () => {
+          it('has no environment file after either attempt', async () => {
+            for (let i = 0; i < 2; i++) {
+              mockResolveBuildId.throws(new Error('invalid version'));
+              await wrapConsoleLogStub(async () => {
+                try {
+                  await install(browser);
+                } catch (e) {
+                  expect(e.message).to.contain('invalid version');
+                }
+                try {
+                  await version();
+                } catch (e) {
+                  expect(e.message).to.contain('No environment file exists.');
+                }
+              });
+            }
           });
         });
       });
