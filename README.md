@@ -96,3 +96,4 @@ Install dependencies with
 
 - **-h,--help:** Display the help information
 - **--verbose:** Output verbose logs
+- **-v,--version:** Display the version information
