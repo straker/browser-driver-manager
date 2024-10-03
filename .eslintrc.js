@@ -6,9 +6,10 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 12
   },
-  extends: 'eslint:recommended',
+  extends: ['eslint:recommended', 'plugin:import/recommended'],
   rules: {
     'no-debugger': 0,
-    'no-inner-declarations': 0
+    'no-inner-declarations': 0,
+    'import/no-extraneous-dependencies': 'error'
   }
 };
